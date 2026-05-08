@@ -1,0 +1,48 @@
+{
+  "name": "picking-app-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc -b && vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@floating-ui/react": "^0.27.19",
+    "@fullcalendar/core": "^6.1.15",
+    "@fullcalendar/daygrid": "^6.1.15",
+    "@fullcalendar/interaction": "^6.1.15",
+    "@fullcalendar/react": "^6.1.15",
+    "@fullcalendar/timegrid": "^6.1.15",
+    "@popperjs/core": "^2.11.8",
+    "@react-jvectormap/core": "^1.0.4",
+    "@react-jvectormap/world": "^1.1.2",
+    "apexcharts": "^4.4.0",
+    "clsx": "^2.1.1",
+    "flatpickr": "^4.6.13",
+    "prismjs": "^1.30.0",
+    "react": "^18.3.1",
+    "react-apexcharts": "^1.7.0",
+    "react-dnd": "^16.0.1",
+    "react-dnd-html5-backend": "^16.0.1",
+    "react-dom": "^18.3.1",
+    "react-dropzone": "^14.3.8",
+    "react-helmet-async": "^2.0.5",
+    "react-router": "^7.5.3",
+    "simplebar-react": "^3.3.2",
+    "swiper": "^11.2.6",
+    "tailwind-merge": "^3.2.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.5",
+    "@types/node": "^22.15.21",
+    "@types/prismjs": "^1.26.6",
+    "@types/react": "^18.3.11",
+    "@types/react-dom": "^18.3.1",
+    "tailwindcss": "^4.1.5",
+    "typescript": "^5.8.3",
+    "vite": "^5.4.19",
+    "vite-plugin-svgr": "^5.2.0"
+  }
+}
