@@ -74,7 +74,23 @@ VITE_API_BASE_URL=http://localhost:3001/api
 VITE_API_KEY=tu-clave-segura
 ```
 
-## 4) Ejecutar el backend
+## 4) Levantar todo con un solo comando
+
+Existe un script que arranca backend y frontend juntos. Ejecutar desde PowerShell:
+
+```powershell
+cd C:\inetpub\warehouse-platform\apps\picking-app
+.\start-dev.ps1
+```
+
+Esto inicia:
+- Backend en `http://localhost:3001`
+- Frontend en `http://localhost:5173`
+- Verifica que ambos puertos estén escuchando
+
+Si prefiere arrancarlos por separado, ver las secciones siguientes.
+
+## 5) Ejecutar el backend
 
 En una terminal:
 
