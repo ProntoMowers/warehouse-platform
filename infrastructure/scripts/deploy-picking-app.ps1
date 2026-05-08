@@ -6,6 +6,12 @@ param(
     [string] $TargetRoot = "C:\inetpub\warehouse-platform\apps\picking-app",
 
     [Parameter(Mandatory = $false)]
+    [string] $IisFrontendPath = "",
+
+    [Parameter(Mandatory = $false)]
+    [string] $IisAppPoolName = "",
+
+    [Parameter(Mandatory = $false)]
     [string] $BackendPm2Name = "picking-app-backend"
 )
 
@@ -22,11 +28,15 @@ if ([string]::IsNullOrWhiteSpace($SourceRoot)) {
 $sourceBackend = Join-Path $SourceRoot "backend"
 $sourceFrontendDist = Join-Path $SourceRoot "frontend\dist"
 $targetBackend = Join-Path $TargetRoot "backend"
-$targetFrontendDist = Join-Path $TargetRoot "frontend\dist"
 $targetBackendEnv = Join-Path $targetBackend ".env"
+
+if ([string]::IsNullOrWhiteSpace($IisFrontendPath)) {
+    $IisFrontendPath = Join-Path $TargetRoot "frontend\dist"
+}
 
 Write-Host "SourceRoot  : $SourceRoot"
 Write-Host "TargetRoot  : $TargetRoot"
+Write-Host "IISPath     : $IisFrontendPath"
 Write-Host "BackendName : $BackendPm2Name"
 
 if (!(Test-Path $sourceBackend)) { throw "No existe source backend: $sourceBackend" }
@@ -63,14 +73,20 @@ pm2 save
 Pop-Location
 
 # 2) Frontend dist sync
-Write-Host "Sincronizando frontend dist..."
-if (!(Test-Path $targetFrontendDist)) {
-    New-Item -ItemType Directory -Path $targetFrontendDist -Force | Out-Null
+Write-Host "Sincronizando frontend dist a IIS..."
+if (!(Test-Path $IisFrontendPath)) {
+    New-Item -ItemType Directory -Path $IisFrontendPath -Force | Out-Null
 }
 
-robocopy $sourceFrontendDist $targetFrontendDist /MIR /R:2 /W:2 > $null
+robocopy $sourceFrontendDist $IisFrontendPath /MIR /R:2 /W:2 > $null
 if ($LASTEXITCODE -gt 7) { throw "Robocopy frontend dist falló con código $LASTEXITCODE" }
+
+if (-not [string]::IsNullOrWhiteSpace($IisAppPoolName)) {
+    Write-Host "Reciclando App Pool IIS ($IisAppPoolName)..."
+    Import-Module WebAdministration
+    Restart-WebAppPool -Name $IisAppPoolName
+}
 
 Write-Host "Deploy completado correctamente."
 Write-Host "Backend : http://localhost:3001/api/health"
-Write-Host "Frontend: http://localhost:5173 (dev) o IIS/URL de producción"
+Write-Host "Frontend (IIS): $IisFrontendPath"

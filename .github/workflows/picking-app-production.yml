@@ -7,6 +7,14 @@ on:
         description: "Ruta de producción en el servidor"
         required: false
         default: "C:\\inetpub\\warehouse-platform\\apps\\picking-app"
+      iis_frontend_path:
+        description: "Ruta física IIS para frontend (site root)"
+        required: false
+        default: "C:\\inetpub\\warehouse-platform\\apps\\picking-app\\frontend\\dist"
+      iis_app_pool:
+        description: "App Pool IIS a reciclar (opcional)"
+        required: false
+        default: ""
       pm2_name:
         description: "Nombre del proceso PM2"
         required: false
@@ -45,4 +53,6 @@ jobs:
           .\infrastructure\scripts\deploy-picking-app.ps1 `
             -SourceRoot "${{ github.workspace }}\\apps\\picking-app" `
             -TargetRoot "${{ inputs.target_root }}" `
+            -IisFrontendPath "${{ inputs.iis_frontend_path }}" `
+            -IisAppPoolName "${{ inputs.iis_app_pool }}" `
             -BackendPm2Name "${{ inputs.pm2_name }}"
