@@ -1,0 +1,3579 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ShipPricing Center</title>
+<script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+<style>
+/* ── Reset & tokens ────────────────────────────────────────────────── */
+:root{
+  --bg:#f4f6f9;
+  --sidebar:#1a2236;
+  --sidebar-hover:#253046;
+  --sidebar-active:#3b5bdb;
+  --card:#ffffff;
+  --border:#e3e8f0;
+  --text:#1a2236;
+  --muted:#6b7a99;
+  --blue:#3b5bdb;
+  --blue-lt:#e8eeff;
+  --green:#2f9e44;
+  --green-lt:#ebfbee;
+  --red:#e03131;
+  --red-lt:#fff5f5;
+  --amber:#f08c00;
+  --amber-lt:#fff9db;
+  --radius:10px;
+  --shadow:0 2px 12px rgba(0,0,0,.07);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Segoe UI",Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;overflow:hidden}
+
+/* ── Sidebar ───────────────────────────────────────────────────────── */
+.sidebar{width:220px;min-width:220px;background:var(--sidebar);display:flex;flex-direction:column;padding:0;color:#c8d0e7;transition:width .2s ease,min-width .2s ease;overflow:hidden;flex-shrink:0}
+.sidebar-brand{display:flex;align-items:center;gap:10px;padding:20px 18px 16px;border-bottom:1px solid rgba(255,255,255,.08);white-space:nowrap}
+.sidebar-logo{width:32px;height:32px;background:var(--sidebar-active);border-radius:8px;display:grid;place-items:center;font-weight:900;font-size:13px;color:#fff;letter-spacing:.02em;flex-shrink:0}
+.sidebar-title{font-size:13px;font-weight:700;color:#fff;transition:opacity .15s}
+.sidebar-title span{display:block;font-size:10px;font-weight:400;color:#8899bb;margin-top:1px}
+.nav{flex:1;padding:12px 0;overflow-y:auto;overflow-x:hidden}
+.nav-item{display:flex;align-items:center;gap:11px;padding:10px 18px;font-size:13px;cursor:pointer;border-left:3px solid transparent;transition:background .15s,color .15s;white-space:nowrap}
+.nav-item:hover{background:var(--sidebar-hover);color:#fff}
+.nav-item.active{background:rgba(59,91,219,.2);border-left-color:var(--sidebar-active);color:#fff}
+.nav-icon{font-size:14px;width:24px;text-align:center;flex:0 0 24px}
+.sidebar-section{padding:8px 18px 4px;font-size:10px;font-weight:600;letter-spacing:.08em;color:#5a6a8a;text-transform:uppercase;white-space:nowrap;transition:opacity .15s}
+.sidebar-footer{padding:14px 18px;border-top:1px solid rgba(255,255,255,.08);font-size:11px;color:#5a6a8a;white-space:nowrap;transition:opacity .15s}
+/* Collapsed sidebar — icon-only rail */
+body.nav-collapsed .sidebar{width:54px;min-width:54px}
+body.nav-collapsed .sidebar-title,
+body.nav-collapsed .sidebar-section,
+body.nav-collapsed .sidebar-footer{opacity:0;pointer-events:none;overflow:hidden;max-height:0;padding:0}
+body.nav-collapsed .sidebar-brand{justify-content:center;padding:16px 0}
+body.nav-collapsed .nav-item{justify-content:center;padding:12px 0;gap:0;border-left-width:2px}
+body.nav-collapsed .nav-item .nav-text{display:none}
+.nav-toggle{background:none;border:0;cursor:pointer;color:#c8d0e7;font-size:18px;padding:4px 6px;border-radius:6px;line-height:1;flex-shrink:0;transition:background .15s}
+.nav-toggle:hover{background:rgba(255,255,255,.1);color:#fff}
+
+/* ── Main area ─────────────────────────────────────────────────────── */
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
+.topbar{background:var(--card);border-bottom:1px solid var(--border);padding:12px 18px;display:flex;align-items:center;gap:10px;min-height:54px}
+.topbar-title{font-size:17px;font-weight:700;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topbar-sub{font-size:12px;color:var(--muted);font-weight:400;margin-top:1px}
+.view{flex:1;overflow-y:auto;padding:20px 24px}
+
+/* ── KPI cards ─────────────────────────────────────────────────────── */
+.kpi-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:14px;margin-bottom:20px}
+.kpi{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;box-shadow:var(--shadow)}
+.kpi-label{font-size:11px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
+.kpi-value{font-size:22px;font-weight:800;line-height:1}
+.kpi-sub{font-size:11px;color:var(--muted);margin-top:5px;line-height:1.35}
+.kpi-badge{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px;margin-top:6px}
+.up{background:var(--green-lt);color:var(--green)}
+.dn{background:var(--red-lt);color:var(--red)}
+
+/* ── Toolbar / filters ─────────────────────────────────────────────── */
+.toolbar{display:flex;align-items:center;gap:10px;margin-bottom:16px;flex-wrap:wrap}
+.toolbar input,.toolbar select{font:inherit;font-size:13px;border:1px solid var(--border);border-radius:6px;padding:7px 11px;background:#fff;color:var(--text);outline:none}
+.toolbar input:focus,.toolbar select:focus{border-color:var(--blue)}
+.btn{font:inherit;font-size:13px;padding:7px 16px;border-radius:6px;border:0;cursor:pointer;font-weight:600;transition:background .15s}
+.btn-primary{background:var(--blue);color:#fff}
+.btn-primary:hover{background:#2f4cc0}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--muted)}
+.btn-ghost:hover{background:var(--bg);color:var(--text)}
+.btn-sm{padding:5px 10px;font-size:12px}
+#view-orders > .toolbar{display:none}
+.filter-panel{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px 16px;margin-bottom:16px}
+.filter-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:12px}
+.filter-title{font-size:14px;font-weight:800;color:var(--text)}
+.filter-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.result-count{font-size:12px;color:var(--muted);font-weight:700;white-space:nowrap}
+.filter-grid{display:grid;grid-template-columns:repeat(7,minmax(130px,1fr));gap:10px;align-items:end}
+.field{display:flex;flex-direction:column;gap:5px;font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.field input,.field select{width:100%;font:inherit;font-size:13px;font-weight:500;letter-spacing:0;text-transform:none;border:1px solid var(--border);border-radius:7px;padding:8px 10px;background:#fff;color:var(--text);outline:none;min-height:36px}
+.field input:focus,.field select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,91,219,.12)}
+.field-wide{grid-column:span 2}
+.filter-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.quick-chip{font:inherit;font-size:12px;font-weight:800;color:#2741b8;background:#eef2ff;border:1px solid #c7d2fe;border-radius:999px;padding:6px 10px;cursor:pointer}
+.quick-chip:hover{background:#dfe7ff}
+.cause-select,.solution-select{width:185px;font:inherit;font-size:12px;border:1px solid var(--border);border-radius:7px;padding:6px 8px;background:#fff;color:var(--text);outline:none}
+.cause-select:focus,.solution-select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,91,219,.12)}
+.store-cell{max-width:210px;overflow:hidden;text-overflow:ellipsis}
+.muted-cell{color:var(--muted)}
+.segment-summary{display:grid;grid-template-columns:repeat(4,minmax(150px,1fr));gap:12px;margin-bottom:14px}
+.summary-tile{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:14px}
+.summary-label{font-size:10px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
+.summary-value{font-size:22px;font-weight:900}
+.segment-grid{display:grid;grid-template-columns:1fr;gap:14px}
+.segment-card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.segment-card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:14px 16px;border-bottom:1px solid var(--border);background:#fbfcff}
+.segment-name{font-size:15px;font-weight:900}
+.segment-meta{font-size:12px;color:var(--muted);margin-top:3px}
+.segment-kpis{display:flex;gap:8px;flex-wrap:wrap}
+.mini-kpi{background:#fff;border:1px solid var(--border);border-radius:7px;padding:7px 9px;min-width:78px;text-align:right}
+.mini-kpi span{display:block;font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase}
+.mini-kpi strong{font-size:13px}
+.segment-table{max-height:360px;overflow:auto}
+.segment-table table{min-width:1380px}
+.sku-cell{max-width:140px;overflow:hidden;text-overflow:ellipsis}
+.request-input{width:96px;font:inherit;font-size:12px;border:1px solid var(--border);border-radius:7px;padding:6px 8px;text-align:right;outline:none}
+.request-input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,91,219,.12)}
+.modal-backdrop{position:fixed;inset:0;background:rgba(12,19,35,.42);z-index:500;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{width:min(560px,96vw);background:#fff;border-radius:12px;box-shadow:0 24px 70px rgba(0,0,0,.28);overflow:hidden;border:1px solid var(--border)}
+.modal-header{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:18px 20px;border-bottom:1px solid var(--border)}
+.modal-title{font-size:16px;font-weight:900}
+.modal-sub{font-size:12px;color:var(--muted);margin-top:3px}
+.modal-body{padding:16px 20px}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;padding:14px 20px;border-top:1px solid var(--border);background:#fbfcff}
+.order-modal{width:min(1120px,96vw);max-height:92vh;display:flex;flex-direction:column}
+.order-modal .modal-body{overflow:auto}
+.detail-kpis{display:grid;grid-template-columns:repeat(5,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.detail-kpi{border:1px solid var(--border);border-radius:8px;padding:10px 12px;background:#fbfcff}
+.detail-kpi span{display:block;font-size:10px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+.detail-kpi strong{font-size:16px}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.detail-section{border:1px solid var(--border);border-radius:8px;overflow:hidden;background:#fff}
+.detail-section-title{padding:10px 12px;background:#f8f9fd;border-bottom:1px solid var(--border);font-size:12px;font-weight:900;text-transform:uppercase;letter-spacing:.05em;color:var(--muted)}
+.detail-section-body{padding:12px}
+.detail-list{display:grid;gap:8px;font-size:13px}
+.detail-list-row{display:flex;justify-content:space-between;gap:12px;border-bottom:1px solid #eef1f6;padding-bottom:7px}
+.detail-list-row:last-child{border-bottom:0;padding-bottom:0}
+.detail-list-row span{color:var(--muted)}
+.detail-table-wrap{overflow:auto}
+.detail-table-wrap table{font-size:12px}
+.detail-table-wrap thead th{font-size:10px;padding:8px 10px}
+.detail-table-wrap tbody td,.detail-table-wrap tfoot td{padding:8px 10px}
+.cause-list{display:flex;flex-direction:column;gap:8px;max-height:310px;overflow:auto}
+.cause-row{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center}
+.cause-row input,.cause-add input{font:inherit;font-size:13px;border:1px solid var(--border);border-radius:7px;padding:8px 10px;outline:none}
+.cause-row input:focus,.cause-add input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(59,91,219,.12)}
+.cause-add{display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:12px}
+.sku-analysis-grid{display:grid;grid-template-columns:1fr;gap:14px}
+
+/* ── Table ─────────────────────────────────────────────────────────── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.card-title{font-size:14px;font-weight:700}
+.card-sub{font-size:12px;color:var(--muted);margin-left:auto}
+table{width:100%;border-collapse:collapse;font-size:13px}
+.orders-scrollbar-top{height:16px;overflow-x:auto;overflow-y:hidden;background:#fbfcff;border-bottom:1px solid var(--border)}
+.orders-scrollbar-spacer{height:1px}
+.orders-table-scroll{overflow-x:auto;overflow-y:visible}
+.orders-table{min-width:1260px}
+thead th{background:#f8f9fd;padding:10px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid var(--border);white-space:nowrap}
+thead th.sortable{cursor:pointer;user-select:none}
+thead th.sortable:hover{background:#eef0fa;color:var(--text)}
+.sort-ind{font-size:10px;margin-left:3px;opacity:.7}
+tbody tr{border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s}
+tbody tr:hover{background:#f0f4ff}
+tbody tr.selected{background:var(--blue-lt)}
+tbody td{padding:10px 14px;white-space:nowrap}
+.num{text-align:right;font-variant-numeric:tabular-nums}
+.tag{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600}
+.tag-green{background:var(--green-lt);color:var(--green)}
+.tag-amber{background:var(--amber-lt);color:var(--amber)}
+.tag-red{background:var(--red-lt);color:var(--red)}
+
+/* ── Pagination ────────────────────────────────────────────────────── */
+.pagination{display:flex;align-items:center;gap:6px;padding:14px 18px;border-top:1px solid var(--border)}
+.page-btn{padding:5px 12px;border:1px solid var(--border);border-radius:5px;font-size:12px;cursor:pointer;background:#fff}
+.page-btn.active{background:var(--blue);color:#fff;border-color:var(--blue)}
+.page-btn:hover:not(.active){background:var(--bg)}
+.page-info{font-size:12px;color:var(--muted);margin-left:auto}
+
+/* ── Side panel (order detail) ─────────────────────────────────────── */
+.layout-split{display:flex;gap:18px;align-items:flex-start}
+.layout-split .card{flex:1;min-width:0}
+.side-panel{width:380px;min-width:340px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);display:none;flex-direction:column;max-height:calc(100vh - 88px);overflow-y:auto;position:sticky;top:16px;align-self:flex-start}
+.side-panel.open{display:flex}
+.side-panel-header{padding:16px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.side-panel-title{font-size:14px;font-weight:700;flex:1}
+.close-btn{background:none;border:0;font-size:18px;cursor:pointer;color:var(--muted);line-height:1}
+.close-btn:hover{color:var(--text)}
+.side-tabs{display:flex;border-bottom:1px solid var(--border)}
+.side-tab{flex:1;text-align:center;padding:10px;font-size:13px;font-weight:600;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent}
+.side-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.side-body{padding:16px 18px;flex:1}
+.ship-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
+.ship-row:last-child{border-bottom:0;font-weight:700}
+.ship-concept{color:var(--muted)}
+.ship-amount{font-weight:600}
+
+/* ── Shipping view ─────────────────────────────────────────────────── */
+#view-shipping{display:flex;flex-direction:column;gap:12px;overflow:hidden;padding:14px 18px}
+.shipping-toolbar{margin-bottom:0;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;box-shadow:0 1px 5px rgba(0,0,0,.04);flex-shrink:0}
+.shipping-kpis{grid-template-columns:repeat(4,minmax(150px,1fr));gap:10px;margin-bottom:0;flex-shrink:0}
+.shipping-kpis .kpi{padding:11px 13px;min-height:74px}
+.shipping-kpis .kpi-label{font-size:10px;margin-bottom:5px}
+.shipping-kpis .kpi-value{font-size:20px}
+.shipping-kpis .kpi-sub{font-size:10px}
+.shipping-dashboard{display:grid;grid-template-columns:minmax(440px,.78fr) minmax(650px,1.22fr);gap:14px;flex:1;min-height:0}
+.ship-map-panel,.ship-table-stack{min-width:0;min-height:0}
+.ship-map-panel{display:flex;flex-direction:column}
+.ship-map-card{display:flex;flex-direction:column;min-height:0;overflow:hidden}
+.ship-map-card .card-header{flex-shrink:0}
+#usMap{width:100%;height:clamp(340px,47vh,520px);min-height:320px;background:#fff}
+.map-controls{padding:9px 14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;border-top:1px solid var(--border);flex-shrink:0}
+.ship-insights{padding:0 14px 12px;flex-shrink:0}
+.ship-insights .insight-box{margin-bottom:8px}
+.ship-table-stack{display:flex;flex-direction:column;gap:12px;overflow-y:auto;padding-right:3px}
+.ship-table-stack .card{flex-shrink:0}
+.ship-table-stack table{font-size:12px}
+.ship-table-stack thead th{font-size:10px;padding:8px 10px}
+.ship-table-stack tbody td{padding:8px 10px}
+.table-scroll{overflow:auto}
+.table-scroll-md{max-height:30vh}
+.table-scroll-sm{max-height:24vh}
+.table-scroll-xs{max-height:22vh}
+.price-rec{color:var(--blue);font-weight:800}
+.delta-note{display:block;font-size:10px;color:var(--muted);margin-top:2px}
+.delta-up{color:var(--red)}
+.delta-down{color:var(--green)}
+.filter-chips{display:flex;gap:6px;align-items:center;flex-wrap:wrap}
+.filter-chip{display:inline-flex;align-items:center;gap:5px;border:1px solid #c7d2fe;background:#eef2ff;color:#2741b8;border-radius:999px;padding:4px 8px;font-size:11px;font-weight:700;line-height:1}
+.filter-chip button{border:0;background:transparent;color:inherit;cursor:pointer;font:inherit;line-height:1;padding:0}
+.clickable-row{cursor:pointer}
+.clickable-row:hover{background:#f8f9fd}
+.clickable-row.selected-row{background:#eef4ff;box-shadow:inset 3px 0 0 var(--blue)}
+.two-col{display:grid;grid-template-columns:1fr 360px;gap:18px;align-items:flex-start}
+.map-wrap{position:relative;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);overflow:hidden}
+.map-wrap svg{display:block;width:100%;height:auto}
+.map-legend{display:flex;flex-wrap:wrap;gap:10px;padding:14px 18px;border-top:1px solid var(--border)}
+.legend-item{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}
+.legend-dot{width:12px;height:12px;border-radius:2px}
+.rules-card .card-header{justify-content:space-between}
+.rule-row{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;align-items:center;padding:10px 18px;border-bottom:1px solid var(--border);font-size:13px}
+.rule-row:last-child{border-bottom:0}
+.rule-zone{font-weight:600;color:var(--blue)}
+.rule-range{color:var(--muted);font-size:12px}
+.rule-actions{display:flex;gap:4px}
+.insight-box{padding:12px 16px;border-radius:8px;margin-bottom:10px;font-size:13px}
+.insight-warn{background:var(--amber-lt);border:1px solid #ffe066;color:#7a5900}
+.insight-ok{background:var(--green-lt);border:1px solid #b2f2bb;color:var(--green)}
+
+/* ── Stores Analytics redesign ───────────────────────────────────────── */
+#view-stores{display:flex;flex-direction:column;gap:0;overflow-y:auto;overflow-x:hidden;padding:0;background:var(--bg)}
+.sa-header{display:flex;align-items:flex-start;justify-content:space-between;padding:16px 22px 10px;flex-shrink:0}
+.sa-header-title{font-size:18px;font-weight:900;color:var(--text)}
+.sa-header-sub{font-size:12px;color:var(--muted);margin-top:2px}
+.sa-updated{display:flex;align-items:center;gap:5px;font-size:12px;color:#22c55e;font-weight:600}
+.sa-updated::before{content:'';width:8px;height:8px;border-radius:50%;background:#22c55e;display:inline-block}
+.sa-filters{display:flex;align-items:center;gap:8px;padding:0 22px 12px;flex-shrink:0;flex-wrap:nowrap;overflow-x:auto;min-height:0}
+.sa-filter-label{font-size:12px;font-weight:700;color:var(--muted)}
+.sa-filters input,.sa-filters select{font:inherit;font-size:13px;border:1px solid var(--border);border-radius:8px;padding:7px 10px;background:#fff;color:var(--text);outline:none;height:36px}
+.sa-filters input:focus,.sa-filters select:focus{border-color:var(--blue)}
+.sa-body{padding:0 22px 20px;display:flex;flex-direction:column;gap:14px}
+/* KPI cards */
+.sa-kpi-row{display:grid;grid-template-columns:repeat(5,1fr);gap:12px}
+.sa-kpi{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 8px 24px rgba(15,23,42,.04);padding:14px 16px;display:flex;align-items:center;gap:12px;min-width:0}
+.sa-kpi-icon{width:44px;height:44px;border-radius:12px;display:grid;place-items:center;font-size:22px;flex-shrink:0}
+.sa-kpi-icon.blue{background:#dbeafe}
+.sa-kpi-icon.green{background:#dcfce7}
+.sa-kpi-icon.red{background:#fee2e2}
+.sa-kpi-icon.purple{background:#ede9fe}
+.sa-kpi-icon.amber{background:#fef3c7}
+.sa-kpi-body{flex:1;min-width:0}
+.sa-kpi-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:#6b7280;margin-bottom:4px}
+.sa-kpi-value{font-size:22px;font-weight:900;color:#111827;line-height:1}
+.sa-kpi-sub{font-size:11px;color:#6b7280;margin-top:3px}
+.sa-kpi-badge{display:inline-flex;align-items:center;gap:2px;font-size:11px;font-weight:700;padding:2px 6px;border-radius:4px;margin-left:4px}
+.sa-kpi-badge.up{background:#dcfce7;color:#16a34a}
+.sa-kpi-badge.dn{background:#fee2e2;color:#dc2626}
+/* main grid */
+.sa-main-grid{display:grid;grid-template-columns:1fr 1.35fr;gap:14px;align-items:start}
+.sa-heatmap-card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 8px 24px rgba(15,23,42,.04);overflow:hidden}
+.sa-card-head{display:flex;align-items:center;justify-content:space-between;padding:13px 18px;border-bottom:1px solid #f1f5f9}
+.sa-card-title{font-size:14px;font-weight:800;color:#111827}
+.sa-card-sub{font-size:12px;color:#6b7280}
+.sa-card-action{font-size:12px;font-weight:700;color:var(--blue);cursor:pointer;text-decoration:none;background:none;border:0;padding:0}
+.sa-card-action:hover{text-decoration:underline}
+/* Heatmap table */
+.hm-scroll{overflow-x:auto}
+.hm-table{width:100%;border-collapse:collapse;font-size:12px}
+.hm-table th{background:#f8f9fd;padding:8px 10px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;white-space:nowrap;border-bottom:1px solid #eef2f7}
+.hm-table th.num{text-align:right}
+.hm-table td{padding:0;border-bottom:1px solid #f1f5f9;white-space:nowrap}
+.hm-store-cell{padding:9px 12px;font-size:12px;font-weight:600;color:#111827;cursor:pointer;max-width:190px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hm-store-cell:hover{color:var(--blue)}
+.hm-cell{padding:8px 10px;text-align:center;font-size:12px;font-weight:700;cursor:pointer;transition:filter .1s}
+.hm-cell:hover{filter:brightness(.93)}
+.hm-cell.no-data{background:#f3f4f6;color:#9ca3af;font-weight:400}
+.hm-actual-cell{padding:8px 12px;text-align:right;font-size:12px;font-weight:800}
+.hm-expand{background:none;border:0;color:var(--blue);cursor:pointer;font-size:11px;padding:6px 12px;font-weight:700}
+.hm-legend{padding:10px 18px;border-top:1px solid #f1f5f9}
+.hm-legend-grad{height:10px;border-radius:5px;background:linear-gradient(to right,#ef4444 0%,#fca5a5 20%,#fef08a 40%,#bbf7d0 65%,#22c55e 100%);margin-bottom:5px}
+.hm-legend-labels{display:flex;justify-content:space-between;font-size:10px;color:#9ca3af}
+.hm-legend-nodata{display:inline-flex;align-items:center;gap:5px;font-size:11px;color:#9ca3af;margin-top:5px}
+.hm-legend-nodata-box{width:14px;height:10px;background:#e5e7eb;border-radius:2px;flex-shrink:0}
+/* Ranking */
+.sa-ranking-card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 8px 24px rgba(15,23,42,.04);overflow:hidden}
+.rank-table{width:100%;border-collapse:collapse;font-size:12px}
+.rank-table th{background:#f8f9fd;padding:8px 12px;text-align:left;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#6b7280;border-bottom:1px solid #eef2f7;white-space:nowrap}
+.rank-table th.num{text-align:right}
+.rank-table td{padding:9px 12px;border-bottom:1px solid #f1f5f9;vertical-align:middle}
+.rank-table tr{cursor:pointer;transition:background .1s}
+.rank-table tr:hover{background:#f8fbff}
+.rank-table tr.selected-rank{background:#eff6ff;box-shadow:inset 3px 0 0 var(--blue)}
+.rank-num{font-weight:800;color:#6b7280;font-size:11px}
+.rank-store{font-weight:700;color:#111827;max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:block}
+.rank-bar-wrap{margin-top:3px;height:4px;background:#e5e7eb;border-radius:2px;max-width:120px}
+.rank-bar{height:4px;border-radius:2px;background:var(--blue)}
+.rank-change{font-size:11px;font-weight:700;white-space:nowrap}
+.rank-change.up{color:#16a34a}
+.rank-change.dn{color:#dc2626}
+.rank-change.neutral{color:#6b7280}
+.sparkline{display:inline-block;vertical-align:middle}
+.alert-dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-left:4px;vertical-align:middle}
+.alert-dot.critical{background:#dc2626}
+.alert-dot.risk{background:#f59e0b}
+.alert-dot.good{background:#22c55e}
+.alert-dot.medium{background:#3b82f6}
+/* Detail panel */
+/* Detail panel full-width */
+.sa-detail-full{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 8px 24px rgba(15,23,42,.04);overflow:hidden}
+.sa-detail-header{display:flex;align-items:center;gap:10px;padding:14px 18px;border-bottom:1px solid #f1f5f9;flex-wrap:wrap}
+.sa-detail-header-left{flex:1;min-width:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.sa-store-pill{display:inline-flex;align-items:center;gap:4px;background:#eff6ff;border:1px solid #bfdbfe;border-radius:999px;padding:3px 8px 3px 12px;font-size:12px;font-weight:700;color:#1d4ed8}
+.sa-store-pill .pill-name{max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sa-store-pill .pill-close{background:none;border:0;padding:0 0 0 2px;cursor:pointer;color:#94a3b8;font-size:14px;line-height:1}
+.sa-store-pill .pill-close:hover{color:#dc2626}
+.sa-detail-kpis-row{display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-bottom:1px solid #f1f5f9}
+.sa-dkpi{padding:14px 18px;border-right:1px solid #f1f5f9}
+.sa-dkpi:last-child{border-right:0}
+.sa-dkpi span{display:block;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.sa-dkpi strong{font-size:18px;font-weight:900;color:#111827;display:block;line-height:1.15}
+.sa-dkpi .sub{font-size:11px;font-weight:600;margin-top:3px;display:block}
+.sa-dkpi .sub.up{color:#16a34a}
+.sa-dkpi .sub.dn{color:#dc2626}
+.sa-detail-lower{display:grid;grid-template-columns:1fr minmax(230px,270px) minmax(185px,215px);gap:0;align-items:start}
+.sa-detail-lower > div{padding:16px 18px;min-height:0}
+.sa-detail-lower > div+div{border-left:1px solid #f1f5f9}
+.sa-section-label{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8;margin-bottom:10px}
+.sa-detail-card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 8px 24px rgba(15,23,42,.04);overflow:hidden}
+.sa-detail-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;padding:14px 18px}
+.sa-dkpi{border:1px solid #eef2f7;border-radius:10px;padding:10px 12px;background:#f8f9fd}
+.sa-dkpi span{display:block;font-size:10px;color:#6b7280;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px}
+.sa-dkpi strong{font-size:16px;font-weight:900;color:#111827}
+.sa-dkpi .sub{font-size:11px;font-weight:600;margin-top:2px;display:block}
+.sa-dkpi .sub.up{color:#16a34a}
+.sa-dkpi .sub.dn{color:#dc2626}
+#sa-detail-chart{width:100%;height:220px}
+.sa-vs-item{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid #f1f5f9;font-size:13px}
+.sa-vs-item:last-child{border-bottom:0}
+.sa-vs-label{color:#6b7280;font-size:12px}
+.sa-vs-value{font-weight:700;color:#111827}
+.sa-vs-msg{font-size:12px;padding:10px 12px;border-radius:8px;margin-top:10px}
+.sa-vs-msg.above{background:#dcfce7;color:#166534}
+.sa-vs-msg.below{background:#fee2e2;color:#991b1b}
+/* Quick views */
+.sa-quick-card{background:#fff;border:1px solid #e5e7eb;border-radius:16px;box-shadow:0 8px 24px rgba(15,23,42,.04);overflow:hidden}
+.sa-quick-btn{display:flex;align-items:center;gap:10px;padding:10px 14px;cursor:pointer;border-bottom:1px solid #f1f5f9;transition:background .1s;border:0;background:none;width:100%;text-align:left;font:inherit}
+.sa-quick-btn:last-child{border-bottom:0}
+.sa-quick-btn:hover{background:#f8fbff}
+.sa-quick-btn.active{background:#eff6ff}
+.sa-quick-icon{width:32px;height:32px;border-radius:8px;display:grid;place-items:center;font-size:15px;flex-shrink:0}
+.sa-quick-label{font-size:12px;font-weight:700;color:#111827}
+.sa-quick-sub{font-size:11px;color:#6b7280;margin-top:1px}
+.compare-mode-bar{background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:8px 14px;font-size:12px;font-weight:600;color:#1d4ed8;display:none;align-items:center;gap:10px}
+.compare-mode-bar.active{display:flex}
+#sa-compare-chart{width:100%;height:280px}
+
+/* ── Spinner ───────────────────────────────────────────────────────── */
+.spinner{display:inline-block;width:22px;height:22px;border:3px solid rgba(59,91,219,.2);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loading-center{display:flex;justify-content:center;padding:40px}
+.empty{text-align:center;padding:40px;color:var(--muted);font-size:14px}
+
+/* ── Responsive hide ───────────────────────────────────────────────── */
+@media(max-width:1200px){
+  #view-shipping{overflow-y:auto}
+  .shipping-dashboard{grid-template-columns:1fr;overflow:visible}
+  .ship-table-stack{overflow:visible;padding-right:0}
+  #usMap{height:420px}
+  .filter-grid{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .field-wide{grid-column:span 1}
+  .segment-summary{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+@media(max-width:1100px){
+  .sa-main-grid{grid-template-columns:1fr}
+  .sa-detail-grid{grid-template-columns:1fr}
+}
+@media(max-width:900px){
+  .two-col{grid-template-columns:1fr}
+  .shipping-kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .store-grid{grid-template-columns:1fr}
+  body{overflow:auto}
+  .layout-split{flex-direction:column}
+  .side-panel{width:100%;min-width:0;max-height:none;position:static}
+  .filter-grid{grid-template-columns:1fr}
+  .segment-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<!-- ── Sidebar ─────────────────────────────────────────────────────────── -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-logo">SP</div>
+    <div class="sidebar-title">ShipPricing<span>Center</span></div>
+  </div>
+  <nav class="nav">
+    <div class="sidebar-section">Principal</div>
+    <div class="nav-item active" data-view="orders" title="Órdenes">
+      <span class="nav-icon">📦</span><span class="nav-text"> Órdenes</span>
+    </div>
+    <div class="nav-item" data-view="segments" title="Segmentos">
+      <span class="nav-icon">SG</span><span class="nav-text"> Segmentos</span>
+    </div>
+    <div class="nav-item" data-view="skus" title="Por SKU">
+      <span class="nav-icon">SKU</span><span class="nav-text"> Por SKU</span>
+    </div>
+    <div class="nav-item" data-view="shipping" title="Despachos &amp; Shipping">
+      <span class="nav-icon">🚚</span><span class="nav-text"> Despachos &amp; Shipping</span>
+    </div>
+    <div class="nav-item" data-view="stores" title="Store">
+      <span class="nav-icon">🏬</span><span class="nav-text"> Store</span>
+    </div>
+
+  </nav>
+  <div class="sidebar-footer">Pronto AI · v1.0</div>
+</aside>
+
+<!-- ── Main ────────────────────────────────────────────────────────────── -->
+<div class="main">
+  <div class="topbar">
+    <button class="nav-toggle" id="nav-toggle" onclick="toggleNav()" title="Mostrar/ocultar menú">☰</button>
+    <div style="min-width:0;flex:1">
+      <div class="topbar-title" id="view-title">Órdenes</div>
+      <div class="topbar-sub" id="view-sub">Análisis de rentabilidad por orden</div>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px;align-items:center;flex-shrink:0">
+      <span id="topbar-status" style="font-size:12px;color:var(--muted)"></span>
+    </div>
+  </div>
+
+  <!-- ORDERS VIEW -->
+  <div class="view" id="view-orders">
+    <!-- KPIs -->
+    <div class="kpi-row" id="kpi-row">
+      <div class="kpi"><div class="kpi-label">Órdenes</div><div class="kpi-value" id="kpi-orders">—</div></div>
+      <div class="kpi"><div class="kpi-label">Revenue Bruto</div><div class="kpi-value" id="kpi-revenue">—</div></div>
+      <div class="kpi"><div class="kpi-label">Costo de Productos</div><div class="kpi-value" id="kpi-cost">—</div></div>
+      <div class="kpi"><div class="kpi-label">Revenue (Bruto - Costo)</div><div class="kpi-value" id="kpi-gp">—</div></div>
+      <div class="kpi"><div class="kpi-label">Shipping</div><div class="kpi-value" id="kpi-ship">—</div></div>
+      <div class="kpi"><div class="kpi-label">Margen Shipping</div><div class="kpi-value" id="kpi-ship-margin">—</div><div class="kpi-sub" id="kpi-ship-margin-sub">Charge vs cost</div></div>
+      <div class="kpi"><div class="kpi-label">Revenue Neto</div><div class="kpi-value" id="kpi-fp">—</div></div>
+      <div class="kpi"><div class="kpi-label">Margen Neto</div><div class="kpi-value" id="kpi-margin">—</div></div>
+      <div class="kpi"><div class="kpi-label">Margen &lt; 20%</div><div class="kpi-value" id="kpi-low-margin">—</div><div class="kpi-sub" id="kpi-low-margin-sub">órdenes</div></div>
+      <div class="kpi"><div class="kpi-label">Margen &lt; 0%</div><div class="kpi-value" id="kpi-zero-margin">—</div><div class="kpi-sub" id="kpi-zero-margin-sub">órdenes</div></div>
+    </div>
+
+    <section class="filter-panel">
+      <div class="filter-head">
+        <div>
+          <div class="filter-title">Filtros de pricing</div>
+          <div class="filter-sub">Combina margen, store, causa y presion de shipping.</div>
+        </div>
+        <span id="orders-count" class="result-count"></span>
+      </div>
+      <div class="filter-grid">
+        <label class="field">Desde
+          <input type="date" id="f-from" value="" onchange="loadOrders(1)">
+        </label>
+        <label class="field">Hasta
+          <input type="date" id="f-to" value="" onchange="loadOrders(1)">
+        </label>
+        <label class="field field-wide">Buscar
+          <input type="text" id="f-search" placeholder="Orden, store, cliente, causa...">
+        </label>
+        <label class="field">Store SW
+          <select id="f-store" onchange="loadOrders(1)">
+            <option value="all">Todos los stores</option>
+          </select>
+        </label>
+        <label class="field">Margen neto
+          <select id="f-margin-preset" onchange="loadOrders(1)">
+            <option value="all">Todos</option>
+            <option value="20">20% o menor</option>
+            <option value="10">10% o menor</option>
+            <option value="0">0% o menor</option>
+          </select>
+        </label>
+        <label class="field">Shipping % min
+          <input type="number" id="f-shipratio-min" min="0" step="0.5" placeholder="Ej. 15" onchange="loadOrders(1)">
+        </label>
+        <label class="field">Causa
+          <select id="f-cause" onchange="loadOrders(1)">
+            <option value="all">Todas</option>
+            <option value="__assigned__">Con causa</option>
+            <option value="__unassigned__">Sin causa</option>
+          </select>
+        </label>
+      </div>
+      <div class="filter-actions">
+        <button class="btn btn-primary" onclick="loadOrders(1)">Buscar</button>
+        <button class="btn btn-ghost" onclick="clearFilters()">Limpiar</button>
+        <button class="btn btn-ghost" id="btn-nomatch" onclick="toggleNoMatch()">Sin match SW</button>
+        <button class="btn btn-ghost" onclick="openCauseManager()">Editar causas</button>
+        <button class="quick-chip" onclick="setMarginPreset('20')">Margen <= 20%</button>
+        <button class="quick-chip" onclick="setShippingPctMin(15)">Shipping >= 15%</button>
+        <button class="quick-chip" onclick="setCauseFilter('__unassigned__')">Sin causa</button>
+      </div>
+    </section>
+
+    <div class="layout-split">
+      <!-- Orders table -->
+      <div class="card" style="min-width:0;flex:1">
+        <div class="card-header">
+          <span class="card-title">Órdenes</span>
+          <span class="card-sub" id="orders-showing"></span>
+        </div>
+        <div id="orders-table-wrap">
+          <div class="loading-center"><div class="spinner"></div></div>
+        </div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+
+      <!-- Side panel -->
+      <div class="side-panel" id="side-panel">
+        <div class="side-panel-header">
+          <div>
+            <div class="side-panel-title" id="sp-title">Orden #—</div>
+            <div style="font-size:12px;color:var(--muted)" id="sp-sub"></div>
+          </div>
+          <button class="close-btn" onclick="closePanel()">✕</button>
+        </div>
+        <div id="sp-refs" style="padding:10px 18px;background:#f8f9fd;border-bottom:1px solid var(--border);font-size:12px;display:none"></div>
+        <div class="side-tabs">
+          <div class="side-tab active" data-tab="products" onclick="switchTab('products')">Productos</div>
+          <div class="side-tab" data-tab="shipping" onclick="switchTab('shipping')">Shipping (0)</div>
+        </div>
+        <div class="side-body" id="sp-body">
+          <div class="loading-center"><div class="spinner"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SEGMENTS VIEW -->
+  <div class="view" id="view-segments" style="display:none">
+    <section class="filter-panel segments-filter">
+      <div class="filter-head">
+        <div>
+          <div class="filter-title">Segmentos por causa</div>
+          <div class="filter-sub">Solo muestra ordenes que ya tienen una causa asignada.</div>
+        </div>
+        <span id="segments-status" class="result-count"></span>
+      </div>
+      <div class="filter-grid">
+        <label class="field">Desde
+          <input type="date" id="seg-from" onchange="loadSegments()">
+        </label>
+        <label class="field">Hasta
+          <input type="date" id="seg-to" onchange="loadSegments()">
+        </label>
+        <label class="field">Store SW
+          <select id="seg-store" onchange="loadSegments()">
+            <option value="all">Todos los stores</option>
+          </select>
+        </label>
+        <label class="field">Margen neto
+          <select id="seg-margin-preset" onchange="loadSegments()">
+            <option value="all">Todos</option>
+            <option value="20">20% o menor</option>
+            <option value="10">10% o menor</option>
+            <option value="0">0% o menor</option>
+          </select>
+        </label>
+        <label class="field">Shipping % min
+          <input type="number" id="seg-shipratio-min" min="0" step="0.5" placeholder="Ej. 15" onchange="loadSegments()">
+        </label>
+      </div>
+      <div class="filter-actions">
+        <button class="btn btn-primary" onclick="loadSegments()">Actualizar</button>
+        <button class="btn btn-ghost" onclick="syncSegmentsFromOrders()">Usar filtros de ordenes</button>
+        <button class="btn btn-ghost" onclick="openSolutionManager()">Editar soluciones</button>
+        <button class="quick-chip" onclick="setSegmentMarginPreset('20')">Margen <= 20%</button>
+        <button class="quick-chip" onclick="setSegmentShippingPctMin(15)">Shipping >= 15%</button>
+      </div>
+    </section>
+    <div id="segments-summary" class="segment-summary"></div>
+    <div id="segments-wrap" class="segment-grid">
+      <div class="loading-center"><div class="spinner"></div></div>
+    </div>
+  </div>
+
+  <!-- SKU VIEW -->
+  <div class="view" id="view-skus" style="display:none">
+    <section class="filter-panel">
+      <div class="filter-head">
+        <div>
+          <div class="filter-title">Profit por SKU</div>
+          <div class="filter-sub">Margen por SKU vendido y relacion de items afectados por shipping.</div>
+        </div>
+        <span id="sku-status" class="result-count"></span>
+      </div>
+      <div class="filter-grid">
+        <label class="field">Desde
+          <input type="date" id="sku-from" onchange="loadSkus()">
+        </label>
+        <label class="field">Hasta
+          <input type="date" id="sku-to" onchange="loadSkus()">
+        </label>
+        <label class="field">Store SW
+          <select id="sku-store" onchange="loadSkus()">
+            <option value="all">Todos los stores</option>
+          </select>
+        </label>
+        <label class="field field-wide">Buscar SKU / MFR
+          <input type="text" id="sku-search" placeholder="SKU, MFR o descripcion">
+        </label>
+      </div>
+      <div class="filter-actions">
+        <button class="btn btn-primary" onclick="loadSkus()">Actualizar</button>
+        <button class="btn btn-ghost" onclick="resetSkuDates()">Yesterday</button>
+      </div>
+    </section>
+    <div id="sku-summary" class="segment-summary"></div>
+    <div class="sku-analysis-grid">
+      <section class="segment-card">
+        <div class="card-header">
+          <span class="card-title">Profit por SKU vendido</span>
+          <span class="card-sub" id="sku-profit-count"></span>
+        </div>
+        <div id="sku-profit-wrap" class="segment-table">
+          <div class="loading-center"><div class="spinner"></div></div>
+        </div>
+      </section>
+      <section class="segment-card">
+        <div class="card-header">
+          <span class="card-title">Top items negativos por shipping</span>
+          <span class="card-sub" id="sku-shipping-count"></span>
+        </div>
+        <div id="sku-shipping-wrap" class="segment-table">
+          <div class="loading-center"><div class="spinner"></div></div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- SHIPPING VIEW -->
+  <div class="view" id="view-shipping" style="display:none">
+    <!-- Store + Refresh filter bar -->
+    <div class="toolbar shipping-toolbar">
+      <span style="font-size:13px;font-weight:600;color:var(--muted)">Desde:</span>
+      <input type="date" id="f-ship-from" style="font:inherit;font-size:13px;border:1px solid var(--border);border-radius:6px;padding:7px 11px;background:#fff" onchange="loadShipping()">
+      <span style="font-size:13px;font-weight:600;color:var(--muted)">Hasta:</span>
+      <input type="date" id="f-ship-to" style="font:inherit;font-size:13px;border:1px solid var(--border);border-radius:6px;padding:7px 11px;background:#fff" onchange="loadShipping()">
+      <span style="font-size:13px;font-weight:600;color:var(--muted)">Tienda:</span>
+      <select id="f-ship-store" style="font:inherit;font-size:13px;border:1px solid var(--border);border-radius:6px;padding:7px 11px;background:#fff" onchange="loadShipping()">
+        <option value="all">Todas las tiendas</option>
+      </select>
+      <button class="btn btn-primary btn-sm" onclick="loadShipping()">Actualizar</button>
+      <div id="active-ship-filters" class="filter-chips" style="display:none"></div>
+      <span id="ship-status" style="font-size:12px;color:var(--muted);margin-left:auto"></span>
+    </div>
+
+    <div class="kpi-row shipping-kpis">
+      <div class="kpi"><div class="kpi-label">Cobrado Promedio</div><div class="kpi-value" id="map-avg-rec">—</div><div class="kpi-sub">Según reglas</div></div>
+      <div class="kpi"><div class="kpi-label">Costo SW Promedio</div><div class="kpi-value" id="map-avg-actual">—</div><div class="kpi-sub">Costo real carrier</div></div>
+      <div class="kpi"><div class="kpi-label">Sin Cobertura</div><div class="kpi-value tag tag-red" id="map-pct-loss">—</div><div class="kpi-sub">Fuera de reglas</div></div>
+      <div class="kpi"><div class="kpi-label">Gap Total (SW − Cobrado)</div><div class="kpi-value" id="map-saving">—</div><div class="kpi-sub">Positivo = pérdida</div></div>
+    </div>
+
+    <div class="shipping-dashboard">
+      <section class="ship-map-panel">
+      <div class="card ship-map-card">
+      <div class="card-header">
+        <span class="card-title">Mapa de Estados Unidos</span>
+        <span class="card-sub" id="map-subtitle">Costo de envío promedio por estado</span>
+      </div>
+      <div id="usMap"></div>
+      <div class="map-controls">
+        <span style="font-size:12px;color:var(--muted);font-weight:600">Métrica:</span>
+        <select id="map-metric" style="font:inherit;font-size:12px;border:1px solid var(--border);border-radius:6px;padding:5px 9px;background:#fff" onchange="renderUSMap()">
+          <option value="gap">Gap Real (Carrier − Cobrado)</option>
+          <option value="volume">Volumen de Órdenes</option>
+          <option value="actual">Costo SW Real Promedio</option>
+          <option value="charged">Cobrado al Cliente</option>
+        </select>
+      </div>
+      <!-- Insights -->
+      <div class="ship-insights">
+        <div class="insight-box insight-warn" id="insight-1">📊 Cargando insights...</div>
+        <div class="insight-box insight-ok" id="insight-2" style="display:none"></div>
+      </div>
+      </div>
+      </section>
+
+    <!-- ── Bottom: State analysis + Uncovered orders ── -->
+    <section class="ship-table-stack">
+
+      <!-- Price range analysis table -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Análisis por Rango de Precio</span>
+          <span class="card-sub" id="range-table-sub">Costo real carrier (SW) vs. tarifa cobrada al cliente</span>
+        </div>
+        <div class="table-scroll table-scroll-md">
+          <table>
+            <thead><tr>
+              <th>Rango</th>
+              <th class="num">#Órdenes</th>
+              <th class="num">Tarifa Univ.</th>
+              <th class="num">Real SW Prom.</th>
+              <th class="num">Nuevo Rec.</th>
+              <th class="num">No Cubre</th>
+              <th class="num">Gap/Ord</th>
+              <th class="num">Gap Total</th>
+            </tr></thead>
+            <tbody id="range-table-body">
+              <tr><td colspan="8" class="empty">Cargando análisis...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- State analysis table -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Estados para Tabla Específica</span>
+          <span class="card-sub">Qué queda corto después de aplicar la tabla universal por rango</span>
+        </div>
+        <div class="table-scroll table-scroll-sm">
+          <table>
+            <thead><tr>
+              <th>Estado</th>
+              <th class="num">#Órdenes</th>
+              <th class="num">No Cubre Univ.</th>
+              <th class="num">% Queda</th>
+              <th class="num">Univ. Prom.</th>
+              <th class="num">SW Prom.</th>
+              <th class="num">Rec. Estado</th>
+              <th class="num">Gap Restante</th>
+              <th class="num">Prioridad</th>
+            </tr></thead>
+            <tbody id="state-table-body">
+              <tr><td colspan="9" class="empty">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Uncovered orders -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">Órdenes Sin Cobertura Final</span>
+          <span class="card-sub" id="uncovered-count" style="color:var(--red)"></span>
+        </div>
+        <div style="font-size:12px;padding:10px 18px;border-bottom:1px solid var(--border);background:var(--amber-lt);color:#7a5900">
+          ⚠️ Pedidos que todavía no cubre la tabla universal. Úsalos para decidir si amerita tabla específica por estado o excepción manual.
+        </div>
+        <div class="table-scroll table-scroll-xs">
+          <table>
+            <thead><tr>
+              <th># Orden</th><th>Estado</th><th>Rango</th><th>Tienda</th><th>Fecha</th>
+              <th class="num">Venta</th><th class="num">Costo SW</th><th class="num">Univ. Rec.</th><th class="num">Estado Rec.</th><th class="num">Gap Univ.</th>
+            </tr></thead>
+            <tbody id="uncovered-table-body">
+              <tr><td colspan="10" class="empty">Cargando...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+    </div>
+  </div>
+
+  <!-- STORES ANALYTICS VIEW -->
+  <div class="view" id="view-stores" style="display:none;padding:0">
+
+    <!-- Header -->
+    <div class="sa-header">
+      <div>
+        <div class="sa-header-title">Resumen de tiendas</div>
+        <div class="sa-header-sub" id="sa-header-sub">Análisis de margen neto (%)</div>
+      </div>
+      <div class="sa-updated" id="sa-updated">Actualizado: —</div>
+    </div>
+
+    <!-- Filters -->
+    <div class="sa-filters">
+      <span class="sa-filter-label">Desde:</span>
+      <input type="date" id="sa-from">
+      <span class="sa-filter-label">Hasta:</span>
+      <input type="date" id="sa-to">
+      <span class="sa-filter-label">Vista:</span>
+      <select id="sa-granularity">
+        <option value="day">Día</option>
+        <option value="month" selected>Mes</option>
+        <option value="year">Año</option>
+      </select>
+      <span class="sa-filter-label">Métrica:</span>
+      <select id="sa-metric">
+        <option value="final_margin">Margen neto (%)</option>
+        <option value="shipping_margin">Margen shipping (%)</option>
+        <option value="shipping_pct">Shipping % de venta</option>
+        <option value="total_shipping">Shipping cost ($)</option>
+        <option value="total_shipping_charged">Shipping charge ($)</option>
+        <option value="shipping_gap">Gap shipping ($)</option>
+        <option value="final_profit">Revenue neto ($)</option>
+        <option value="total_sale">Revenue bruto ($)</option>
+        <option value="order_count">Órdenes</option>
+      </select>
+      <span class="sa-filter-label">Store:</span>
+      <select id="sa-store-filter" style="min-width:140px;max-width:200px">
+        <option value="">Todas las tiendas</option>
+      </select>
+      <button class="btn btn-primary btn-sm" onclick="loadStoreAnalytics()">&#x1F504; Actualizar</button>
+      <button class="btn btn-ghost btn-sm" onclick="exportStoreReport()">&#x2193; Exportar</button>
+      <span id="sa-status" style="font-size:12px;color:var(--muted);margin-left:auto"></span>
+    </div>
+
+    <!-- Body -->
+    <div class="sa-body">
+
+      <!-- Compare mode bar -->
+      <div class="compare-mode-bar" id="sa-compare-bar">
+        <span>Modo comparar: <span id="sa-compare-count">0</span>/5 tiendas seleccionadas</span>
+        <button class="btn btn-ghost btn-sm" onclick="exitCompareMode()">Salir</button>
+        <button class="btn btn-primary btn-sm" onclick="renderCompareChart()">Ver gráfico</button>
+      </div>
+
+      <!-- KPI cards -->
+      <div class="sa-kpi-row" id="sa-kpi-row">
+        <div class="sa-kpi">
+          <div class="sa-kpi-icon blue">📊</div>
+          <div class="sa-kpi-body">
+            <div class="sa-kpi-label">Margen neto promedio</div>
+            <div class="sa-kpi-value"><span id="sa-kpi-avg-margin">—</span></div>
+            <div class="sa-kpi-sub"><span id="sa-kpi-avg-change" class="sa-kpi-badge">—</span> vs. período anterior</div>
+          </div>
+        </div>
+        <div class="sa-kpi">
+          <div class="sa-kpi-icon green">👑</div>
+          <div class="sa-kpi-body">
+            <div class="sa-kpi-label">Mejor tienda</div>
+            <div class="sa-kpi-value" style="font-size:13px;font-weight:800" id="sa-kpi-best-store">—</div>
+            <div class="sa-kpi-sub" id="sa-kpi-best-margin">—</div>
+          </div>
+        </div>
+        <div class="sa-kpi">
+          <div class="sa-kpi-icon red">⚠️</div>
+          <div class="sa-kpi-body">
+            <div class="sa-kpi-label">Peor tienda</div>
+            <div class="sa-kpi-value" style="font-size:13px;font-weight:800" id="sa-kpi-worst-store">—</div>
+            <div class="sa-kpi-sub" id="sa-kpi-worst-margin">—</div>
+          </div>
+        </div>
+        <div class="sa-kpi">
+          <div class="sa-kpi-icon purple">🛒</div>
+          <div class="sa-kpi-body">
+            <div class="sa-kpi-label">Tiendas activas</div>
+            <div class="sa-kpi-value"><span id="sa-kpi-stores">—</span></div>
+            <div class="sa-kpi-sub">de <span id="sa-kpi-total-stores">—</span></div>
+          </div>
+        </div>
+        <div class="sa-kpi">
+          <div class="sa-kpi-icon amber">🛍️</div>
+          <div class="sa-kpi-body">
+            <div class="sa-kpi-label">Órdenes totales</div>
+            <div class="sa-kpi-value"><span id="sa-kpi-orders">—</span></div>
+            <div class="sa-kpi-sub"><span id="sa-kpi-orders-change" class="sa-kpi-badge">—</span> vs. período anterior</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Main grid: heatmap + ranking -->
+      <div class="sa-main-grid">
+
+        <!-- Heatmap -->
+        <div class="sa-heatmap-card">
+          <div class="sa-card-head">
+            <div>
+              <div class="sa-card-title" id="sa-hm-title">Mapa de calor — Margen neto (%)</div>
+              <div class="sa-card-sub">Evolución por tienda</div>
+            </div>
+            <span id="sa-hm-rows-info" style="font-size:12px;color:var(--muted)"></span>
+          </div>
+          <div class="hm-scroll">
+            <table class="hm-table" id="sa-heatmap-table">
+              <thead id="sa-heatmap-head"><tr><th>Cargando...</th></tr></thead>
+              <tbody id="sa-heatmap-body"></tbody>
+            </table>
+          </div>
+          <div style="padding:8px 18px;text-align:center">
+            <button class="hm-expand" id="sa-hm-expand-btn" onclick="toggleHeatmapExpand()" style="display:none">+ Ver todas las tiendas</button>
+          </div>
+          <div class="hm-legend">
+            <div class="hm-legend-grad"></div>
+            <div class="hm-legend-labels"><span>Bajo rendimiento</span><span>Rendimiento medio</span><span>Alto rendimiento</span></div>
+            <div class="hm-legend-nodata"><div class="hm-legend-nodata-box"></div>Sin datos</div>
+          </div>
+        </div>
+
+        <!-- Ranking -->
+        <div class="sa-ranking-card">
+          <div class="sa-card-head">
+            <div>
+              <div class="sa-card-title">Ranking de tiendas</div>
+              <div class="sa-card-sub" id="sa-rank-sub">Por métrica seleccionada</div>
+            </div>
+            <button class="sa-card-action" onclick="toggleAllRanking()">Ver todas</button>
+          </div>
+          <div style="overflow:auto;max-height:460px">
+            <table class="rank-table">
+              <thead><tr>
+                <th style="width:28px">#</th>
+                <th>Tienda</th>
+                <th class="num" style="min-width:100px">Métrica</th>
+                <th class="num" style="min-width:90px">Δ vs. anterior</th>
+                <th class="num" style="min-width:90px">Revenue</th>
+                <th class="num">Órd.</th>
+                <th style="width:56px">Tend.</th>
+              </tr></thead>
+              <tbody id="sa-ranking-body"></tbody>
+            </table>
+          </div>
+          <div style="padding:10px 18px;border-top:1px solid #f1f5f9">
+            <div class="hm-legend-grad" style="margin-bottom:4px"></div>
+            <div class="hm-legend-labels"><span>Bajo rendimiento</span><span>Alto rendimiento</span></div>
+          </div>
+        </div>
+
+      </div><!-- /sa-main-grid -->
+
+      <!-- Detail panel (full-width) -->
+      <div class="sa-detail-full" id="sa-detail-section" style="display:none">
+        <div class="sa-detail-header">
+          <div class="sa-detail-header-left">
+            <div class="sa-card-title">Detalle de tienda seleccionada</div>
+            <div class="sa-store-pill" id="sa-detail-pill">
+              <span class="pill-name" id="sa-detail-store-name">—</span>
+              <button class="pill-close" onclick="closeDetailPanel()">×</button>
+            </div>
+          </div>
+        </div>
+        <!-- 4 mini-KPIs -->
+        <div class="sa-detail-kpis-row" id="sa-detail-kpis"></div>
+        <!-- Chart + vs promedio + quick views -->
+        <div class="sa-detail-lower">
+          <div>
+            <div class="sa-section-label" id="sa-detail-chart-label">Evolución del margen neto (%)</div>
+            <div id="sa-detail-chart" style="height:240px"></div>
+          </div>
+          <div>
+            <div class="sa-section-label">Resumen vs. promedio</div>
+            <div id="sa-vs-body"></div>
+          </div>
+          <div>
+            <div class="sa-section-label">Vistas rápidas</div>
+            <div id="sa-quick-inner">
+              <button class="sa-quick-btn" onclick="quickView('top5')" data-qv="top5">
+                <div class="sa-quick-icon" style="background:#dbeafe">🏆</div>
+                <div><div class="sa-quick-label">Top 5 margen</div><div class="sa-quick-sub">Ver las 5 mejores tiendas</div></div>
+              </button>
+              <button class="sa-quick-btn" onclick="quickView('worst5')" data-qv="worst5">
+                <div class="sa-quick-icon" style="background:#fee2e2">📉</div>
+                <div><div class="sa-quick-label">Peores 5</div><div class="sa-quick-sub">Tiendas con menor margen</div></div>
+              </button>
+              <button class="sa-quick-btn" onclick="quickView('growth')" data-qv="growth">
+                <div class="sa-quick-icon" style="background:#dcfce7">📈</div>
+                <div><div class="sa-quick-label">Mayor crecimiento</div><div class="sa-quick-sub">Según cambio vs. anterior</div></div>
+              </button>
+              <button class="sa-quick-btn" onclick="quickView('fall')" data-qv="fall">
+                <div class="sa-quick-icon" style="background:#fef3c7">⚡</div>
+                <div><div class="sa-quick-label">Mayor caída</div><div class="sa-quick-sub">Según cambio vs. anterior</div></div>
+              </button>
+              <button class="sa-quick-btn" id="sa-alert-btn-d" onclick="quickView('alerts')" data-qv="alerts">
+                <div class="sa-quick-icon" style="background:#fee2e2">🔔</div>
+                <div><div class="sa-quick-label">Tiendas con alerta</div><div class="sa-quick-sub" id="sa-alert-count-sub">Rendimiento bajo umbral</div></div>
+              </button>
+              <button class="sa-quick-btn" onclick="enterCompareMode()">
+                <div class="sa-quick-icon" style="background:#ede9fe">⚖️</div>
+                <div><div class="sa-quick-label">Comparar tiendas</div><div class="sa-quick-sub">Selecciona hasta 5 tiendas</div></div>
+              </button>
+            </div>
+          </div>
+        </div>
+      </div><!-- /sa-detail-full -->
+
+      <!-- Quick-access when no store selected -->
+      <div id="sa-quick-standalone" style="display:flex;gap:14px;flex-wrap:wrap">
+        <div class="sa-quick-card" style="flex:0 0 auto;min-width:200px">
+          <div class="sa-card-head"><div class="sa-card-title">Vistas rápidas</div></div>
+          <button class="sa-quick-btn" onclick="quickView('top5')" data-qv="top5">
+            <div class="sa-quick-icon" style="background:#dbeafe">🏆</div>
+            <div><div class="sa-quick-label">Top 5 margen</div><div class="sa-quick-sub">Mejores tiendas</div></div>
+          </button>
+          <button class="sa-quick-btn" onclick="quickView('worst5')" data-qv="worst5">
+            <div class="sa-quick-icon" style="background:#fee2e2">📉</div>
+            <div><div class="sa-quick-label">Peores 5</div><div class="sa-quick-sub">Menor margen</div></div>
+          </button>
+          <button class="sa-quick-btn" onclick="quickView('growth')" data-qv="growth">
+            <div class="sa-quick-icon" style="background:#dcfce7">📈</div>
+            <div><div class="sa-quick-label">Mayor crecimiento</div><div class="sa-quick-sub">Vs. período anterior</div></div>
+          </button>
+          <button class="sa-quick-btn" onclick="quickView('fall')" data-qv="fall">
+            <div class="sa-quick-icon" style="background:#fef3c7">⚡</div>
+            <div><div class="sa-quick-label">Mayor caída</div><div class="sa-quick-sub">Vs. período anterior</div></div>
+          </button>
+          <button class="sa-quick-btn" onclick="quickView('alerts')" data-qv="alerts">
+            <div class="sa-quick-icon" style="background:#fee2e2">🔔</div>
+            <div><div class="sa-quick-label">Tiendas con alerta</div><div class="sa-quick-sub" id="sa-alert-count-sub2">—</div></div>
+          </button>
+          <button class="sa-quick-btn" onclick="enterCompareMode()">
+            <div class="sa-quick-icon" style="background:#ede9fe">⚖️</div>
+            <div><div class="sa-quick-label">Comparar tiendas</div><div class="sa-quick-sub">Hasta 5 tiendas</div></div>
+          </button>
+        </div>
+      </div>
+
+      <!-- Compare chart -->
+      <div class="sa-detail-card" id="sa-compare-card" style="display:none">
+        <div class="sa-card-head">
+          <div class="sa-card-title">Comparar tiendas</div>
+          <button class="sa-card-action" onclick="exitCompareMode()">✕ Salir</button>
+        </div>
+        <div style="padding:0 18px 14px"><div id="sa-compare-chart"></div></div>
+      </div>
+
+    </div><!-- /sa-body -->
+  </div><!-- /view-stores -->
+
+</div>
+
+<!-- ── Rule edit modal ─────────────────────────────────────────────────── -->
+<div id="modal-bg" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:100;align-items:center;justify-content:center">
+  <div style="background:#fff;border-radius:12px;padding:28px;width:440px;box-shadow:0 8px 40px rgba(0,0,0,.18)">
+    <div style="font-size:16px;font-weight:700;margin-bottom:18px" id="modal-title">Nueva Regla</div>
+    <div style="display:grid;gap:12px">
+      <label style="font-size:12px;font-weight:600;color:var(--muted)">Nombre / Descripción<br>
+        <input id="m-zone" style="width:100%;margin-top:4px;padding:8px;border:1px solid var(--border);border-radius:6px;font:inherit;font-size:13px" placeholder="Ej: Local, Regional, Nacional">
+      </label>
+      <label style="font-size:12px;font-weight:600;color:var(--muted)">Estados (separados por coma)<br>
+        <input id="m-states" style="width:100%;margin-top:4px;padding:8px;border:1px solid var(--border);border-radius:6px;font:inherit;font-size:13px" placeholder="FL, GA, AL, SC">
+      </label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <label style="font-size:12px;font-weight:600;color:var(--muted)">Orden mín ($)<br>
+          <input id="m-min" type="number" style="width:100%;margin-top:4px;padding:8px;border:1px solid var(--border);border-radius:6px;font:inherit;font-size:13px" value="0">
+        </label>
+        <label style="font-size:12px;font-weight:600;color:var(--muted)">Orden máx ($)<br>
+          <input id="m-max" type="number" style="width:100%;margin-top:4px;padding:8px;border:1px solid var(--border);border-radius:6px;font:inherit;font-size:13px" value="49.99">
+        </label>
+        <label style="font-size:12px;font-weight:600;color:var(--muted)">Shipping Actual ($)<br>
+          <input id="m-actual" type="number" step="0.01" style="width:100%;margin-top:4px;padding:8px;border:1px solid var(--border);border-radius:6px;font:inherit;font-size:13px" value="4.99">
+        </label>
+        <label style="font-size:12px;font-weight:600;color:var(--muted)">Shipping Recomendado ($)<br>
+          <input id="m-rec" type="number" step="0.01" style="width:100%;margin-top:4px;padding:8px;border:1px solid var(--border);border-radius:6px;font:inherit;font-size:13px" value="4.99">
+        </label>
+      </div>
+    </div>
+    <div style="display:flex;gap:10px;margin-top:20px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveRule()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Tooltip ────────────────────────────────────────────────────────── -->
+<div class="modal-backdrop" id="cause-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Causas de pricing</div>
+        <div class="modal-sub">Edita las opciones que aparecen en el dropdown de cada orden.</div>
+      </div>
+      <button class="close-btn" onclick="closeCauseManager()">x</button>
+    </div>
+    <div class="modal-body">
+      <div id="cause-list" class="cause-list"></div>
+      <div class="cause-add">
+        <input id="new-cause" placeholder="Nueva causa">
+        <button class="btn btn-ghost" onclick="addCauseOption()">Agregar</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeCauseManager()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCauseOptions()">Guardar lista</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="solution-modal" style="display:none">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Soluciones</div>
+        <div class="modal-sub">Edita las opciones que aparecen en la columna Solucion de segmentos.</div>
+      </div>
+      <button class="close-btn" onclick="closeSolutionManager()">x</button>
+    </div>
+    <div class="modal-body">
+      <div id="solution-list" class="cause-list"></div>
+      <div class="cause-add">
+        <input id="new-solution" placeholder="Nueva solucion">
+        <button class="btn btn-ghost" onclick="addSolutionOption()">Agregar</button>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeSolutionManager()">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveSolutionOptions()">Guardar lista</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="order-modal" style="display:none" onclick="if(event.target===this) closeOrderModal()">
+  <div class="modal order-modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="order-modal-title">Orden</div>
+        <div class="modal-sub" id="order-modal-sub"></div>
+      </div>
+      <button class="close-btn" onclick="closeOrderModal()">x</button>
+    </div>
+    <div class="modal-body" id="order-modal-body">
+      <div class="loading-center"><div class="spinner"></div></div>
+    </div>
+  </div>
+</div>
+
+<div id="tooltip" style="display:none;position:fixed;background:#1a2236;color:#fff;padding:8px 12px;border-radius:7px;font-size:12px;pointer-events:none;z-index:200;white-space:nowrap;box-shadow:0 4px 16px rgba(0,0,0,.3)"></div>
+
+<script>
+const appParams = new URLSearchParams(window.location.search);
+
+function readConfigValue(storageKey, queryKey) {
+  try {
+    return window.localStorage.getItem(storageKey) || appParams.get(queryKey) || '';
+  } catch {
+    return appParams.get(queryKey) || '';
+  }
+}
+
+const API_BASE_URL = readConfigValue('shipPricingApiBaseUrl', 'api').replace(/\/$/, '');
+const API_KEY = readConfigValue('shipPricingApiKey', 'key');
+
+function apiUrl(path) {
+  if (/^https?:\/\//i.test(path)) return path;
+  const normalizedPath = path.startsWith('/') ? path : `/${path}`;
+  return `${API_BASE_URL}${normalizedPath}`;
+}
+
+function apiHeaders(headers = {}) {
+  const merged = {'Content-Type': 'application/json', ...headers};
+  if (API_KEY) merged['x-api-key'] = API_KEY;
+  return merged;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// State
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const state = {
+  currentView: 'orders',
+  orders: [],
+  totalOrders: 0,
+  totalPages: 1,
+  currentPage: 1,
+  summary: {},
+  selectedOrder: null,
+  activeTab: 'products',
+  rules: [],
+  mapData: [],
+  editRuleId: null,
+  sortBy: 'transdate',
+  sortDir: 'desc',
+  noMatch: false,
+  stores: [],
+  causes: [],
+  solutions: [],
+  segments: [],
+  skus: [],
+  skuShippingNegative: [],
+  storeTimeline: null,
+  shippingRequests: {},
+  analysis: null,
+  shippingFilters: {
+    priceMin: null,
+    priceMax: null,
+    priceLabel: '',
+    shipState: null,
+  },
+};
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Init
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function yesterdayISO() {
+  const d = new Date();
+  d.setDate(d.getDate() - 1);
+  return d.toISOString().slice(0, 10);
+}
+
+function init() {
+  loadShippingRequests();
+  const today = new Date();
+  const y     = today.getFullYear();
+  const yesterday = yesterdayISO();
+  document.getElementById('f-from').value = yesterday;
+  document.getElementById('f-to').value   = yesterday;
+  document.getElementById('sku-from').value = yesterday;
+  document.getElementById('sku-to').value   = yesterday;
+  document.getElementById('f-ship-from').value = `${y}-01-01`;
+  document.getElementById('f-ship-to').value   = today.toISOString().slice(0, 10);
+  document.getElementById('seg-from').value = `${y}-01-01`;
+  document.getElementById('seg-to').value   = today.toISOString().slice(0, 10);
+  const initialView = window.location.hash.replace('#', '');
+  if (document.getElementById('sa-from')) document.getElementById('sa-from').value = `${y}-01-01`;
+  if (document.getElementById('sa-to')) document.getElementById('sa-to').value = today.toISOString().slice(0, 10);
+  if (['shipping', 'segments', 'skus', 'stores'].includes(initialView)) {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === initialView));
+    switchView(initialView);
+  } else {
+    loadOrders();
+  }
+
+  document.getElementById('f-search').addEventListener('keydown', e => {
+    if (e.key === 'Enter') loadOrders();
+  });
+  document.getElementById('sku-search').addEventListener('keydown', e => {
+    if (e.key === 'Enter') loadSkus();
+  });
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Navigation
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function toggleNav() {
+  const collapsed = document.body.classList.toggle('nav-collapsed');
+  document.getElementById('nav-toggle').textContent = collapsed ? '▶' : '☰';
+}
+
+document.querySelectorAll('.nav-item').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+    el.classList.add('active');
+    switchView(el.dataset.view);
+  });
+});
+
+const VIEW_META = {
+  orders:   { title: 'Órdenes',            sub: 'Análisis de rentabilidad por orden' },
+  segments: { title: 'Segmentos',           sub: 'Grupos asignados por causa de pricing' },
+  skus:     { title: 'Por SKU',             sub: 'Profit y margen por SKU vendido' },
+  shipping: { title: 'Despachos & Shipping', sub: 'Análisis de costos y reglas de envío' },
+  stores:   { title: 'Store',               sub: 'Timeline por tienda con métricas de margen y shipping' },
+
+};
+
+function switchView(v) {
+  state.currentView = v;
+  ['orders','segments','skus','shipping','stores'].forEach(id => {
+    document.getElementById(`view-${id}`).style.display = id === v ? '' : 'none';
+  });
+  const m = VIEW_META[v] || {};
+  document.getElementById('view-title').textContent = m.title || v;
+  document.getElementById('view-sub').textContent   = m.sub   || '';
+
+  if (v === 'shipping') loadShipping();
+  if (v === 'segments') loadSegments();
+  if (v === 'skus') loadSkus();
+  if (v === 'stores') loadStoreTimeline();
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Helpers
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const usd = v => v == null ? '—' : '$' + Number(v).toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2});
+const pct = v => v == null ? '—' : Number(v).toFixed(2) + '%';
+const n   = v => v == null ? '—' : Number(v).toLocaleString('en-US');
+const usdPositive = v => Number(v || 0) > 0 ? usd(v) : '—';
+const escHtml = v => String(v ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch]));
+const escAttr = escHtml;
+
+function recommendedShippingPrice(avgCost, fallbackRate = 0) {
+  const cost = Number(avgCost || 0);
+  if (cost <= 0) return Number(fallbackRate || 0);
+  const target = cost * 1.05;
+  const base = 0.45;
+  const step = 0.50;
+  const increments = Math.max(0, Math.ceil((target - base) / step));
+  return Number((base + increments * step).toFixed(2));
+}
+
+function rateDeltaHtml(delta) {
+  const v = Number(delta || 0);
+  if (!Number.isFinite(v) || Math.abs(v) < 0.01) {
+    return '<span class="delta-note">mantener</span>';
+  }
+  const cls = v > 0 ? 'delta-up' : 'delta-down';
+  const sign = v > 0 ? '+' : '';
+  return `<span class="delta-note ${cls}">${sign}${usd(v)} vs actual</span>`;
+}
+
+function recommendationCell(rate, delta) {
+  return `<span class="price-rec">${usd(rate)}</span>${rateDeltaHtml(delta)}`;
+}
+
+function rangeRecommendation(row) {
+  const current = Number(row.rec_rate || 0);
+  const rate = row.recommended_rate == null
+    ? recommendedShippingPrice(row.avg_sw_cost, current)
+    : Number(row.recommended_rate || 0);
+  const delta = row.recommended_delta == null
+    ? Number((rate - current).toFixed(2))
+    : Number(row.recommended_delta || 0);
+  return { rate, delta };
+}
+
+function stateRecommendation(row) {
+  const current = Number(row.avg_universal_rate || row.avg_charged || row.recommended_rate || 0);
+  const rate = row.recommended_rate == null
+    ? recommendedShippingPrice(row.avg_sw_cost, current)
+    : Number(row.recommended_rate || 0);
+  const delta = row.recommended_delta == null
+    ? Number((rate - current).toFixed(2))
+    : Number(row.recommended_delta || 0);
+  return { rate, delta };
+}
+
+function coverageCountCell(count, pct) {
+  const c = Number(count || 0);
+  const p = Number(pct || 0);
+  const cls = c > 0 ? 'tag-red' : 'tag-green';
+  return `<span class="tag ${cls}">${n(c)}</span><span class="delta-note">${p.toFixed(1)}%</span>`;
+}
+
+function priorityCell(priority) {
+  const p = priority || 'Baja';
+  const cls = p === 'Alta' ? 'tag-red' : p === 'Media' ? 'tag-amber' : 'tag-green';
+  return `<span class="tag ${cls}">${p}</span>`;
+}
+
+function marginTag(m) {
+  if (m == null) return '';
+  const v = parseFloat(m);
+  if (v < 0)  return `<span class="tag tag-red">${pct(v)}</span>`;
+  if (v <= 20) return `<span class="tag tag-amber">${pct(v)}</span>`;
+  return `<span class="tag tag-green">${pct(v)}</span>`;
+}
+
+function shipMarginTag(charge, margin) {
+  if (Number(charge || 0) <= 0) return '<span class="tag tag-red">Sin cobro</span>';
+  return marginTag(margin);
+}
+
+function moneyDeltaTag(value) {
+  if (value == null) return '<span class="muted-cell">—</span>';
+  const v = Number(value || 0);
+  const cls = v > 0 ? 'tag-red' : v < 0 ? 'tag-green' : 'tag-amber';
+  const sign = v > 0 ? '+' : '';
+  return `<span class="tag ${cls}">${sign}${usd(v)}</span>`;
+}
+
+function samePartsCell(order) {
+  const count = Number(order.same_parts_other_orders || 0);
+  const avg = order.same_parts_avg_shipping_paid;
+  if (!count || avg == null) {
+    return '<span class="muted-cell">Sin referencia</span>';
+  }
+  return `${usd(avg)}<span class="delta-note">${n(count)} ordenes · ${moneyDeltaTag(order.same_parts_delta_vs_avg)}</span>`;
+}
+
+function loadShippingRequests() {
+  try {
+    state.shippingRequests = JSON.parse(localStorage.getItem('shipPricing.shippingRequests') || '{}') || {};
+  } catch (e) {
+    state.shippingRequests = {};
+  }
+}
+
+function saveShippingRequests() {
+  localStorage.setItem('shipPricing.shippingRequests', JSON.stringify(state.shippingRequests || {}));
+}
+
+function requestValue(orderId) {
+  return (state.shippingRequests || {})[String(orderId)] || '';
+}
+
+function updateShippingRequest(event, orderId) {
+  event.stopPropagation();
+  const key = String(orderId);
+  const value = event.target.value.trim();
+  if (value) state.shippingRequests[key] = value;
+  else delete state.shippingRequests[key];
+  saveShippingRequests();
+}
+
+function isShippingBadGroup(name) {
+  return String(name || '').trim().toLowerCase() === 'shipping cobramos mal';
+}
+
+function csvCell(value) {
+  const text = String(value ?? '');
+  return /[",\n]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text;
+}
+
+async function apiFetch(path) {
+  const r = await fetch(apiUrl(path), { headers: apiHeaders() });
+  if (!r.ok) throw new Error(`API error ${r.status}: ${await r.text()}`);
+  return r.json();
+}
+
+async function apiSend(path, options = {}) {
+  const r = await fetch(apiUrl(path), {
+    ...options,
+    headers: apiHeaders(options.headers || {}),
+  });
+  if (!r.ok) throw new Error(`API error ${r.status}: ${await r.text()}`);
+  return r.json();
+}
+
+function syncSelectOptions(id, values, allLabel, extra = []) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  const current = el.value || 'all';
+  const seen = new Set(['all']);
+  const options = [`<option value="all">${escHtml(allLabel)}</option>`];
+  extra.forEach(item => {
+    seen.add(String(item.value).toLowerCase());
+    options.push(`<option value="${escAttr(item.value)}">${escHtml(item.label)}</option>`);
+  });
+  (values || []).forEach(value => {
+    const text = String(value || '').trim();
+    const key = text.toLowerCase();
+    if (!text || seen.has(key)) return;
+    seen.add(key);
+    options.push(`<option value="${escAttr(text)}">${escHtml(text)}</option>`);
+  });
+  el.innerHTML = options.join('');
+  const valuesNow = [...el.options].map(o => o.value);
+  el.value = valuesNow.includes(current) ? current : 'all';
+}
+
+function setStatus(msg) {
+  document.getElementById('topbar-status').textContent = msg;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Orders
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function clearFilters() {
+  const yesterday = yesterdayISO();
+  document.getElementById('f-from').value   = yesterday;
+  document.getElementById('f-to').value     = yesterday;
+  document.getElementById('f-search').value = '';
+  document.getElementById('f-store').value = 'all';
+  document.getElementById('f-margin-preset').value = 'all';
+  document.getElementById('f-shipratio-min').value = '';
+  document.getElementById('f-cause').value = 'all';
+  state.currentPage = 1;
+  state.sortBy  = 'transdate';
+  state.sortDir = 'desc';
+  state.noMatch = false;
+  document.getElementById('btn-nomatch').className = 'btn btn-ghost';
+  loadOrders();
+}
+
+function toggleNoMatch() {
+  state.noMatch = !state.noMatch;
+  state.currentPage = 1;
+  const btn = document.getElementById('btn-nomatch');
+  btn.className = state.noMatch ? 'btn btn-primary' : 'btn btn-ghost';
+  loadOrders();
+}
+
+function setMarginPreset(value) {
+  document.getElementById('f-margin-preset').value = value;
+  state.currentPage = 1;
+  loadOrders();
+}
+
+function setShippingPctMin(value) {
+  document.getElementById('f-shipratio-min').value = value;
+  state.currentPage = 1;
+  loadOrders();
+}
+
+function setCauseFilter(value) {
+  document.getElementById('f-cause').value = value;
+  state.currentPage = 1;
+  loadOrders();
+}
+
+function sortCol(col) {
+  if (state.sortBy === col) {
+    state.sortDir = state.sortDir === 'asc' ? 'desc' : 'asc';
+  } else {
+    state.sortBy  = col;
+    state.sortDir = 'desc';
+  }
+  state.currentPage = 1;
+  loadOrders();
+}
+
+function updateSortIndicators() {
+  const cols = ['artransid','salesorderid','transdate','store','total_sale','total_cost','gross_profit','total_shipping','shipping_pct','final_profit','final_margin','cause'];
+  cols.forEach(c => {
+    const el = document.getElementById(`sort-${c}`);
+    if (el) el.textContent = state.sortBy === c ? (state.sortDir === 'asc' ? '↑' : '↓') : '⇅';
+  });
+}
+
+async function loadOrders(page) {
+  if (page) state.currentPage = page;
+  const from   = document.getElementById('f-from').value;
+  const to     = document.getElementById('f-to').value;
+  const search = document.getElementById('f-search').value.trim();
+  const store  = document.getElementById('f-store')?.value || 'all';
+  const cause  = document.getElementById('f-cause')?.value || 'all';
+  const marginPreset = document.getElementById('f-margin-preset')?.value || 'all';
+  const shipRatioMin = document.getElementById('f-shipratio-min')?.value || '';
+
+  setStatus('Cargando...');
+  document.getElementById('orders-table-wrap').innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+
+  const params = new URLSearchParams({
+    date_from: from, date_to: to,
+    page: state.currentPage, per_page: 50,
+    sort_by: state.sortBy, sort_dir: state.sortDir,
+  });
+  if (search) params.set('search', search);
+  if (state.noMatch) params.set('no_match', 'true');
+  if (store && store !== 'all') params.set('store', store);
+  if (cause && cause !== 'all') params.set('cause', cause);
+  if (marginPreset && marginPreset !== 'all') params.set('margin_max', marginPreset);
+  if (shipRatioMin !== '') params.set('shipping_pct_min', shipRatioMin);
+
+  try {
+    const data = await apiFetch(`/api/orders?${params}`);
+    state.orders     = data.orders || [];
+    state.totalOrders = data.total || 0;
+    state.totalPages  = data.pages || 1;
+    state.summary     = data.summary || {};
+    state.stores      = (data.filters || {}).stores || state.stores || [];
+    state.causes      = (data.filters || {}).causes || state.causes || [];
+    state.solutions   = (data.filters || {}).solutions || state.solutions || [];
+    syncSelectOptions('f-store', state.stores, 'Todos los stores');
+    syncSelectOptions('f-cause', state.causes, 'Todas', [
+      {value:'__assigned__', label:'Con causa'},
+      {value:'__unassigned__', label:'Sin causa'},
+    ]);
+    renderKPIs(state.summary);
+    renderOrdersTable(state.orders);
+    updateSortIndicators();
+    renderPagination();
+    setStatus(`Actualizado: ${new Date().toLocaleTimeString('es')}`);
+    document.getElementById('orders-showing').textContent =
+      `Mostrando ${state.orders.length} de ${n(state.totalOrders)} órdenes`;
+    document.getElementById('orders-count').textContent =
+      `${n(state.totalOrders)} ordenes en esta vista`;
+  } catch(e) {
+    document.getElementById('orders-table-wrap').innerHTML =
+      `<div class="empty">❌ Error al cargar órdenes<br><small>${e.message}</small></div>`;
+    setStatus('Error');
+  }
+}
+
+function renderKPIs(s) {
+  document.getElementById('kpi-orders').textContent  = n(s.order_count);
+  document.getElementById('kpi-revenue').textContent = usd(s.total_sale);
+  document.getElementById('kpi-cost').textContent    = usd(s.total_cost);
+  document.getElementById('kpi-gp').textContent      = usd(s.gross_profit);
+  document.getElementById('kpi-ship').textContent    = usd(s.total_shipping);
+  document.getElementById('kpi-ship-margin').innerHTML = shipMarginTag(s.total_shipping_charged, s.shipping_margin) || pct(s.shipping_margin);
+  document.getElementById('kpi-ship-margin-sub').textContent = `Charge ${usd(s.total_shipping_charged)} vs cost ${usd(s.total_shipping)}`;
+  document.getElementById('kpi-fp').textContent      = usd(s.final_profit);
+  document.getElementById('kpi-margin').innerHTML    = marginTag(s.final_margin) || pct(s.final_margin);
+  document.getElementById('kpi-low-margin').textContent = n(s.low_margin_count || 0);
+  document.getElementById('kpi-low-margin-sub').innerHTML = `${pct(s.low_margin_pct || 0)} de las ordenes<br>Venta ${usd(s.low_margin_sale_total || 0)} · Perdido ${usd(s.low_margin_loss_total || 0)}`;
+  document.getElementById('kpi-zero-margin').textContent = n(s.zero_or_less_margin_count || 0);
+  document.getElementById('kpi-zero-margin-sub').innerHTML = `${pct(s.zero_or_less_margin_pct || 0)} de las ordenes<br>Venta ${usd(s.zero_or_less_sale_total || 0)} · Perdido ${usd(s.zero_or_less_loss_total || 0)}`;
+}
+
+// Store timeline dashboard
+const STORE_METRIC_META = {
+  final_margin: { label: 'Margen neto (%)', kind: 'pct' },
+  shipping_margin: { label: 'Margen shipping (%)', kind: 'pct' },
+  shipping_pct: { label: 'Shipping % de venta', kind: 'pct' },
+  total_shipping: { label: 'Shipping cost ($)', kind: 'usd' },
+  total_shipping_charged: { label: 'Shipping charge ($)', kind: 'usd' },
+  shipping_gap: { label: 'Gap shipping ($)', kind: 'usd' },
+  final_profit: { label: 'Revenue neto ($)', kind: 'usd' },
+  total_sale: { label: 'Revenue bruto ($)', kind: 'usd' },
+  order_count: { label: 'Órdenes', kind: 'num' },
+};
+
+function formatStoreMetric(value, kind) {
+  if (kind === 'pct') return pct(value);
+  if (kind === 'usd') return usd(value);
+  return n(value);
+}
+
+function storeMetricValue(point, metric) {
+  return Number(point?.[metric] || 0);
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Store Analytics Dashboard
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const SA = {
+  data: null,         // last API response
+  selectedStore: null,
+  compareStores: [],
+  compareMode: false,
+  hmExpanded: false,
+  quickFilter: null,  // top5 | worst5 | growth | fall | alerts | null
+};
+
+const SA_METRIC_META = {
+  final_margin:           { label: 'Margen neto (%)',     kind: 'pct',  isPct: true },
+  shipping_margin:        { label: 'Margen shipping (%)', kind: 'pct',  isPct: true },
+  shipping_pct:           { label: 'Shipping % de venta', kind: 'pct',  isPct: true },
+  total_shipping:         { label: 'Shipping cost ($)',   kind: 'usd',  isPct: false },
+  total_shipping_charged: { label: 'Shipping charge ($)', kind: 'usd',  isPct: false },
+  shipping_gap:           { label: 'Gap shipping ($)',    kind: 'usd',  isPct: false },
+  final_profit:           { label: 'Revenue neto ($)',    kind: 'usd',  isPct: false },
+  total_sale:             { label: 'Revenue bruto ($)',   kind: 'usd',  isPct: false },
+  order_count:            { label: 'Órdenes',             kind: 'num',  isPct: false },
+};
+
+function saFormatVal(val, meta) {
+  if (!meta) return String(val ?? '—');
+  if (meta.kind === 'pct') return pct(val);
+  if (meta.kind === 'usd') return usd(val);
+  return n(val);
+}
+
+function saMetricVal(row, metric) {
+  return Number(row?.[metric] || 0);
+}
+
+function hmColor(val, metric) {
+  const meta = SA_METRIC_META[metric] || SA_METRIC_META.final_margin;
+  if (!meta.isPct) {
+    // for $ metrics use blue gradient
+    return val === 0 ? '#f3f4f6' : '#dbeafe';
+  }
+  if (val === null || val === undefined || val === 0) return '#f3f4f6';
+  if (val <= 0)  return '#ef4444';
+  if (val <= 15) return '#fca5a5';
+  if (val <= 25) return '#fca5a5';
+  if (val <= 30) return '#fef08a';
+  if (val <= 35) return '#bbf7d0';
+  return '#86efac';
+}
+
+function hmTextColor(bgColor) {
+  const dark = ['#ef4444','#fca5a5'];
+  return dark.includes(bgColor) ? '#7f1d1d' : '#111827';
+}
+
+function sparklineSvg(points, metric, width = 48, height = 20) {
+  const vals = (points || []).map(p => saMetricVal(p, metric));
+  if (vals.length < 2) return '<span style="color:#d1d5db;font-size:10px">—</span>';
+  const mn = Math.min(...vals), mx = Math.max(...vals);
+  const range = mx - mn || 1;
+  const xs = vals.map((_, i) => Math.round(i / (vals.length - 1) * width));
+  const ys = vals.map(v => Math.round(height - ((v - mn) / range) * height));
+  const d = xs.map((x, i) => `${i === 0 ? 'M' : 'L'}${x},${ys[i]}`).join(' ');
+  const last = vals[vals.length - 1], prev = vals[vals.length - 2];
+  const color = last >= prev ? '#16a34a' : '#dc2626';
+  return `<svg class="sparkline" width="${width}" height="${height}" viewBox="0 0 ${width} ${height}"><path d="${d}" fill="none" stroke="${color}" stroke-width="1.5" stroke-linejoin="round"/></svg>`;
+}
+
+/* Convert ISO bucket to short label: "2026-01" → "Ene '26", "2026-01-15" → "15 Ene" */
+function bucketLabel(b) {
+  if (!b) return b;
+  const months = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+  const parts = String(b).split('-');
+  if (parts.length === 3) {
+    const mo = parseInt(parts[1], 10) - 1;
+    return `${parseInt(parts[2],10)} ${months[mo]}`;
+  }
+  if (parts.length === 2) {
+    const mo = parseInt(parts[1], 10) - 1;
+    const yr = parts[0].slice(2);
+    return `${months[mo]} '${yr}`;
+  }
+  return b;
+}
+
+async function loadStoreAnalytics() {
+  const from = document.getElementById('sa-from')?.value;
+  const to   = document.getElementById('sa-to')?.value;
+  const gran = document.getElementById('sa-granularity')?.value || 'month';
+  const metric = document.getElementById('sa-metric')?.value || 'final_margin';
+  const storeFilter = document.getElementById('sa-store-filter')?.value || '';
+  const status = document.getElementById('sa-status');
+  if (status) status.textContent = 'Cargando...';
+  try {
+    const params = new URLSearchParams({ date_from: from, date_to: to, granularity: gran, metric });
+    if (storeFilter) params.set('store', storeFilter);
+    const data = await apiFetch(`/api/stores/analytics?${params}`);
+    SA.data = data;
+    SA.quickFilter = null;
+    renderStoreAnalytics(data);
+    const ts = new Date().toLocaleTimeString('es');
+    if (status) status.textContent = `Actualizado: ${ts}`;
+    const upd = document.getElementById('sa-updated');
+    if (upd) upd.textContent = `Actualizado: ${ts}`;
+    setStatus(`Store · ${ts}`);
+    const sub = document.getElementById('sa-header-sub');
+    const meta = SA_METRIC_META[metric] || SA_METRIC_META.final_margin;
+    if (sub) sub.textContent = `Análisis de ${meta.label}`;
+    const hmTitle = document.getElementById('sa-hm-title');
+    if (hmTitle) hmTitle.textContent = `Mapa de calor — ${meta.label}`;
+  } catch(e) {
+    if (status) status.textContent = 'Error';
+    document.getElementById('sa-heatmap-body').innerHTML = `<tr><td colspan="20" class="empty">Error: ${escHtml(e.message)}</td></tr>`;
+  }
+}
+
+function renderStoreAnalytics(data) {
+  renderSaKpis(data.summary || {});
+  renderSaHeatmap(data);
+  renderSaRanking(data);
+  // Populate store filter dropdown if empty
+  const sfEl = document.getElementById('sa-store-filter');
+  if (sfEl && sfEl.options.length <= 1) {
+    const stores = (data.stores_data || []).map(s => s.store).filter(Boolean).sort();
+    stores.forEach(s => {
+      const opt = document.createElement('option');
+      opt.value = s; opt.textContent = s;
+      sfEl.appendChild(opt);
+    });
+  }
+  // Update alert count subtitles
+  const ac = (data.summary || {}).alert_count || 0;
+  ['sa-alert-count-sub','sa-alert-count-sub2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.textContent = ac > 0 ? `${ac} tienda(s) con alerta` : 'Sin alertas activas';
+  });
+}
+
+function renderSaKpis(s) {
+  const avgM = Number(s.avg_margin || 0);
+  const chgPp = Number(s.avg_margin_change_pp || 0);
+  document.getElementById('sa-kpi-avg-margin').textContent = pct(avgM);
+  const badgeEl = document.getElementById('sa-kpi-avg-change');
+  if (badgeEl) {
+    const sign = chgPp >= 0 ? '+' : '';
+    badgeEl.textContent = `${sign}${chgPp.toFixed(1)}pp`;
+    badgeEl.className = `sa-kpi-badge ${chgPp >= 0 ? 'up' : 'dn'}`;
+  }
+  const bestEl = document.getElementById('sa-kpi-best-store');
+  if (bestEl) bestEl.textContent = s.best_store || '—';
+  const bestM = document.getElementById('sa-kpi-best-margin');
+  if (bestM) bestM.textContent = pct(s.best_store_margin);
+  const worstEl = document.getElementById('sa-kpi-worst-store');
+  if (worstEl) worstEl.textContent = s.worst_store || '—';
+  const worstM = document.getElementById('sa-kpi-worst-margin');
+  if (worstM) worstM.textContent = pct(s.worst_store_margin);
+  const stEl = document.getElementById('sa-kpi-stores');
+  if (stEl) stEl.textContent = n(s.active_stores);
+  const stTot = document.getElementById('sa-kpi-total-stores');
+  if (stTot) stTot.textContent = n(s.total_stores);
+  const ordEl = document.getElementById('sa-kpi-orders');
+  if (ordEl) ordEl.textContent = n(s.total_orders);
+  const ordBadge = document.getElementById('sa-kpi-orders-change');
+  if (ordBadge) {
+    const oc = Number(s.orders_change_pct || 0);
+    const sign = oc >= 0 ? '+' : '';
+    ordBadge.textContent = `${sign}${oc.toFixed(1)}%`;
+    ordBadge.className = `sa-kpi-badge ${oc >= 0 ? 'up' : 'dn'}`;
+  }
+}
+
+function getFilteredStores(stores) {
+  if (!SA.quickFilter) return stores;
+  const all = [...stores];
+  if (SA.quickFilter === 'top5') return all.slice(0, 5);
+  if (SA.quickFilter === 'worst5') return [...all].sort((a,b) => saMetricVal(a, SA.data?.metric || 'final_margin') - saMetricVal(b, SA.data?.metric || 'final_margin')).slice(0,5);
+  if (SA.quickFilter === 'growth') return [...all].sort((a,b) => Number(b.change_pp||0) - Number(a.change_pp||0)).slice(0,5);
+  if (SA.quickFilter === 'fall') return [...all].sort((a,b) => Number(a.change_pp||0) - Number(b.change_pp||0)).slice(0,5);
+  if (SA.quickFilter === 'alerts') return all.filter(s => s.alert === 'critical' || s.alert === 'risk');
+  return stores;
+}
+
+function renderSaHeatmap(data) {
+  const metric = data.metric || 'final_margin';
+  const meta = SA_METRIC_META[metric] || SA_METRIC_META.final_margin;
+  const buckets = data.buckets || [];
+  const allStores = data.stores_data || [];
+  const displayStores = SA.hmExpanded ? allStores : allStores.slice(0, 12);
+
+  // Head
+  const head = document.getElementById('sa-heatmap-head');
+  if (head) {
+    head.innerHTML = `<tr>
+      <th>Store</th>
+      ${buckets.map(b => `<th class="num" style="min-width:68px">${escHtml(bucketLabel(b))}</th>`).join('')}
+      <th class="num">Actual</th>
+    </tr>`;
+  }
+
+  // Body
+  const body = document.getElementById('sa-heatmap-body');
+  if (!body) return;
+  if (!displayStores.length) {
+    body.innerHTML = `<tr><td colspan="${buckets.length + 2}" class="empty">Sin datos</td></tr>`;
+    return;
+  }
+  body.innerHTML = displayStores.map(store => {
+    const cells = buckets.map(b => {
+      const pt = (store.monthly || []).find(m => m.bucket === b);
+      const val = pt ? saMetricVal(pt, metric) : null;
+      const hasData = pt && (pt.order_count || 0) > 0;
+      if (!hasData) return `<td class="hm-cell no-data">—</td>`;
+      const bg = hmColor(val, metric);
+      const txt = hmTextColor(bg);
+      const revenue = pt ? usd(pt.total_sale) : '—';
+      const orders = pt ? n(pt.order_count) : '—';
+      return `<td class="hm-cell" style="background:${bg};color:${txt}"
+        title="${escAttr(store.store)} · ${escAttr(b)}\n${meta.label}: ${saFormatVal(val, meta)}\nRevenue: ${revenue} · Órdenes: ${orders}"
+        onclick="selectStoreAnalytics('${escAttr(store.store)}')">${saFormatVal(val, meta)}</td>`;
+    }).join('');
+    const actVal = saMetricVal(store, metric);
+    const actBg = hmColor(actVal, metric);
+    const actTxt = hmTextColor(actBg);
+    const alertHtml = store.alert !== 'good' ? `<span class="alert-dot ${escAttr(store.alert)}"></span>` : '';
+    return `<tr>
+      <td class="hm-store-cell" onclick="selectStoreAnalytics('${escAttr(store.store)}')" title="${escAttr(store.store)}">${escHtml(store.store)}${alertHtml}</td>
+      ${cells}
+      <td class="hm-actual-cell" style="background:${actBg};color:${actTxt}">${saFormatVal(actVal, meta)}</td>
+    </tr>`;
+  }).join('');
+
+  // Expand button
+  const btn = document.getElementById('sa-hm-expand-btn');
+  if (btn) {
+    if (allStores.length > 12) {
+      btn.style.display = '';
+      btn.textContent = SA.hmExpanded ? '▲ Mostrar menos' : `+ Ver todas (${allStores.length} tiendas)`;
+    } else {
+      btn.style.display = 'none';
+    }
+  }
+  const info = document.getElementById('sa-hm-rows-info');
+  if (info) info.textContent = `${displayStores.length} de ${allStores.length} tiendas`;
+}
+
+function toggleHeatmapExpand() {
+  SA.hmExpanded = !SA.hmExpanded;
+  if (SA.data) renderSaHeatmap(SA.data);
+}
+
+function renderSaRanking(data) {
+  const metric = data.metric || 'final_margin';
+  const meta = SA_METRIC_META[metric] || SA_METRIC_META.final_margin;
+  const allStores = data.stores_data || [];
+  const displayStores = getFilteredStores(allStores);
+  const maxVal = Math.max(...displayStores.map(s => Math.abs(saMetricVal(s, metric))), 1);
+  const sub = document.getElementById('sa-rank-sub');
+  if (sub) sub.textContent = `${displayStores.length} tiendas · por ${meta.label}`;
+
+  const body = document.getElementById('sa-ranking-body');
+  if (!body) return;
+  body.innerHTML = displayStores.map((store, idx) => {
+    const val = saMetricVal(store, metric);
+    const barPct = Math.round(Math.abs(val) / maxVal * 100);
+    const chg = Number(store.change_pp || 0);
+    const chgClass = chg > 0 ? 'up' : chg < 0 ? 'dn' : 'neutral';
+    const chgText = chg === 0 ? '0.00pp' : `${chg > 0 ? '↑' : '↓'} ${Math.abs(chg).toFixed(2)}pp`;
+    const isSelected = SA.selectedStore === store.store;
+    const isCompare = SA.compareStores.includes(store.store);
+    const alertDot = store.alert !== 'good' ? `<span class="alert-dot ${escAttr(store.alert)}"></span>` : '';
+    const checkBox = SA.compareMode
+      ? `<input type="checkbox" ${isCompare ? 'checked' : ''} onclick="event.stopPropagation();toggleCompareStore('${escAttr(store.store)}')" style="margin-right:4px">`
+      : '';
+    const chgSign = chg > 0 ? '&#x2191;' : '&#x2193;';
+    return `<tr class="${isSelected ? 'selected-rank' : ''}" onclick="selectStoreAnalytics('${escAttr(store.store)}')">
+      <td class="rank-num">${checkBox}${idx + 1}</td>
+      <td>
+        <span class="rank-store" title="${escAttr(store.store)}">${alertDot}${escHtml(store.store)}</span>
+        <div class="rank-bar-wrap"><div class="rank-bar" style="width:${barPct}%;background:${hmColor(val, metric)}"></div></div>
+      </td>
+      <td class="num" style="font-weight:700">${saFormatVal(val, meta)}</td>
+      <td class="num rank-change ${chgClass}">${chg === 0 ? '<span style="color:#9ca3af">0.00pp</span>' : `${chgSign} ${Math.abs(chg).toFixed(2)}pp`}</td>
+      <td class="num" style="white-space:nowrap">${usd(store.total_sale)}</td>
+      <td class="num">${n(store.order_count)}</td>
+      <td>${sparklineSvg(store.monthly, metric)}</td>
+    </tr>`;
+  }).join('');
+}
+
+function selectStoreAnalytics(storeName) {
+  if (SA.compareMode) { toggleCompareStore(storeName); return; }
+  SA.selectedStore = storeName;
+  const data = SA.data;
+  if (!data) return;
+  const store = (data.stores_data || []).find(s => s.store === storeName);
+  if (!store) return;
+  const metric = data.metric || 'final_margin';
+  const meta = SA_METRIC_META[metric] || SA_METRIC_META.final_margin;
+
+  // Show detail section
+  document.getElementById('sa-detail-section').style.display = 'block';
+  document.getElementById('sa-quick-standalone').style.display = 'none';
+  document.getElementById('sa-detail-store-name').textContent = storeName;
+
+  // KPIs
+  const curr = store.current_bucket_metrics || {};
+  const prev = store.prev_bucket_metrics || {};
+  const chgPp = Number(store.change_pp || 0);
+  const sign = chgPp >= 0 ? '+' : '';
+  const allStores = data.stores_data || [];
+  const rank = allStores.findIndex(s => s.store === storeName) + 1;
+  const buckets = data.buckets || [];
+  const lastBucket = buckets[buckets.length - 1] || '';
+  const lastPt = (store.monthly || []).find(m => m.bucket === lastBucket) || {};
+  document.getElementById('sa-detail-kpis').innerHTML = `
+    <div class="sa-dkpi">
+      <span>${escHtml(meta.label)} actual</span>
+      <strong>${saFormatVal(saMetricVal(curr, metric) || saMetricVal(store, metric), meta)}</strong>
+      <span class="sub ${chgPp >= 0 ? 'up' : 'dn'}">${sign}${chgPp.toFixed(2)}pp vs anterior</span>
+    </div>
+    <div class="sa-dkpi">
+      <span>Posición en ranking</span>
+      <strong>#${rank}</strong>
+      <span class="sub">de ${allStores.length} tiendas</span>
+    </div>
+    <div class="sa-dkpi">
+      <span>Revenue (${bucketLabel(lastBucket) || 'total'})</span>
+      <strong>${usd(lastPt.total_sale || store.total_sale)}</strong>
+    </div>
+    <div class="sa-dkpi">
+      <span>Órdenes (${bucketLabel(lastBucket) || 'total'})</span>
+      <strong>${n(lastPt.order_count || store.order_count)}</strong>
+    </div>`;
+
+  // Detail chart: store vs average
+  const avgMonthly = data.average_monthly || [];
+  const storePoints = store.monthly || [];
+  const chartEl = document.getElementById('sa-detail-chart');
+  const chartLabel = document.getElementById('sa-detail-chart-label');
+  if (chartLabel) chartLabel.textContent = `Evolución del ${meta.label}`;
+  const palette = ['#2563eb','#94a3b8'];
+  const storeFiltered = storePoints.filter(p => (p.order_count||0)>0);
+  const avgFiltered = avgMonthly;
+  const traces = [
+    {
+      type: 'scatter', mode: 'lines+markers+text',
+      name: escHtml(storeName),
+      x: storeFiltered.map(p => bucketLabel(p.bucket)),
+      y: storeFiltered.map(p => saMetricVal(p, metric)),
+      text: storeFiltered.map(p => saFormatVal(saMetricVal(p, metric), meta)),
+      textposition: 'top center',
+      textfont: { size: 10, color: '#2563eb' },
+      line: { width: 2.5, color: palette[0] }, marker: { size: 7 },
+    },
+    {
+      type: 'scatter', mode: 'lines+markers',
+      name: 'Promedio todas las tiendas',
+      x: avgFiltered.map(p => bucketLabel(p.bucket)),
+      y: avgFiltered.map(p => saMetricVal(p, metric)),
+      line: { width: 1.5, color: palette[1], dash: 'dot' }, marker: { size: 4 },
+    },
+  ];
+  const layout = {
+    margin: { l: 44, r: 12, t: 30, b: 32 },
+    paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+    legend: { orientation: 'h', x: 0, y: -0.22, font: { size: 10 } },
+    xaxis: { type: 'category', tickfont: { size: 10 }, gridcolor: '#eef1f6' },
+    yaxis: {
+      tickfont: { size: 10 }, gridcolor: '#e6ebf3', zeroline: true,
+      ticksuffix: meta.isPct ? '%' : '', tickprefix: meta.kind === 'usd' ? '$' : '',
+    },
+  };
+  Plotly.react(chartEl, traces, layout, { responsive: true, displayModeBar: false });
+
+  // Vs average panel
+  const avgAll = Number(data.summary?.avg_margin || 0);
+  const storeMargin = Number(store.final_margin || 0);
+  const diff = round2(storeMargin - avgAll);
+  const diffSign = diff >= 0 ? '+' : '';
+  const monthlyVals = storePoints.filter(p => (p.order_count||0)>0).map(p => ({ b: bucketLabel(p.bucket), v: saMetricVal(p, 'final_margin') }));
+  const bestMonth = monthlyVals.reduce((a, b) => b.v > a.v ? b : a, monthlyVals[0] || { b: '—', v: 0 });
+  const worstMonth = monthlyVals.reduce((a, b) => b.v < a.v ? b : a, monthlyVals[0] || { b: '—', v: 0 });
+  const trend = monthlyVals.length >= 2 ? (monthlyVals[monthlyVals.length-1].v > monthlyVals[0].v ? '↑ Positiva' : '↓ Negativa') : '—';
+  const trendCls = trend.startsWith('↑') ? 'up' : 'dn';
+  const msgCls = diff >= 0 ? 'above' : 'below';
+  const msgTxt = diff >= 0
+    ? `Esta tienda está <strong>${diffSign}${diff.toFixed(2)}pp</strong> por encima del promedio general.`
+    : `Esta tienda está <strong>${Math.abs(diff).toFixed(2)}pp</strong> por debajo del promedio general. Requiere revisión.`;
+  document.getElementById('sa-vs-body').innerHTML = `
+    <div class="sa-vs-item"><span class="sa-vs-label">Diferencia actual</span><span class="sa-vs-value" style="color:${diff>=0?'#16a34a':'#dc2626'};font-size:16px;font-weight:900">${diffSign}${diff.toFixed(2)}pp</span></div>
+    <div class="sa-vs-item"><span class="sa-vs-label">Promedio todas las tiendas</span><span class="sa-vs-value">${pct(avgAll)}</span></div>
+    <div class="sa-vs-item"><span class="sa-vs-label">Mejor mes</span><span class="sa-vs-value">${escHtml(bestMonth.b)} (${pct(bestMonth.v)})</span></div>
+    <div class="sa-vs-item"><span class="sa-vs-label">Peor mes</span><span class="sa-vs-value">${escHtml(worstMonth.b)} (${pct(worstMonth.v)})</span></div>
+    <div class="sa-vs-item"><span class="sa-vs-label">Tendencia</span><span class="sa-vs-value rank-change ${trendCls}">${trend}</span></div>
+    <div class="sa-vs-msg ${msgCls}" style="margin-top:10px">${msgTxt}</div>`;
+
+  // Re-render ranking to highlight
+  renderSaRanking(data);
+}
+
+function round2(v) { return Math.round(Number(v||0)*100)/100; }
+
+function closeDetailPanel() {
+  SA.selectedStore = null;
+  document.getElementById('sa-detail-section').style.display = 'none';
+  document.getElementById('sa-quick-standalone').style.display = 'flex';
+  SA.quickFilter = null;
+  document.querySelectorAll('[data-qv]').forEach(b => b.classList.remove('active'));
+  if (SA.data) renderSaRanking(SA.data);
+}
+
+function toggleAllRanking() {
+  SA.quickFilter = SA.quickFilter ? null : null; // just show all
+  SA.quickFilter = null;
+  if (SA.data) renderSaRanking(SA.data);
+}
+
+function quickView(type) {
+  SA.quickFilter = SA.quickFilter === type ? null : type;
+  const active = SA.quickFilter;
+  document.querySelectorAll('[data-qv]').forEach(b => {
+    b.classList.toggle('active', b.dataset.qv === active);
+  });
+  if (SA.data) {
+    renderSaHeatmap(SA.data);
+    renderSaRanking(SA.data);
+  }
+}
+
+// Compare mode
+function enterCompareMode() {
+  SA.compareMode = true;
+  SA.compareStores = SA.selectedStore ? [SA.selectedStore] : [];
+  document.getElementById('sa-compare-bar').classList.add('active');
+  document.getElementById('sa-compare-count').textContent = SA.compareStores.length;
+  if (SA.data) renderSaRanking(SA.data);
+}
+
+function exitCompareMode() {
+  SA.compareMode = false;
+  SA.compareStores = [];
+  document.getElementById('sa-compare-bar').classList.remove('active');
+  document.getElementById('sa-compare-card').style.display = 'none';
+  if (SA.data) renderSaRanking(SA.data);
+}
+
+function toggleCompareStore(storeName) {
+  const idx = SA.compareStores.indexOf(storeName);
+  if (idx >= 0) SA.compareStores.splice(idx, 1);
+  else if (SA.compareStores.length < 5) SA.compareStores.push(storeName);
+  document.getElementById('sa-compare-count').textContent = SA.compareStores.length;
+  if (SA.data) renderSaRanking(SA.data);
+}
+
+function renderCompareChart() {
+  if (!SA.compareStores.length || !SA.data) return;
+  const data = SA.data;
+  const metric = data.metric || 'final_margin';
+  const meta = SA_METRIC_META[metric] || SA_METRIC_META.final_margin;
+  const palette = ['#1d4ed8','#0f766e','#b45309','#7c3aed','#be123c'];
+  const traces = SA.compareStores.map((storeName, idx) => {
+    const store = (data.stores_data || []).find(s => s.store === storeName);
+    const points = (store?.monthly || []).filter(p => (p.order_count||0)>0);
+    return {
+      type: 'scatter', mode: 'lines+markers',
+      name: storeName,
+      x: points.map(p => p.bucket),
+      y: points.map(p => saMetricVal(p, metric)),
+      line: { width: 2, color: palette[idx % palette.length] }, marker: { size: 6 },
+    };
+  });
+  const layout = {
+    margin: { l: 52, r: 12, t: 12, b: 60 },
+    paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+    legend: { orientation: 'h', x: 0, y: -0.3, font: { size: 11 } },
+    xaxis: { type: 'category', tickfont: { size: 11 }, gridcolor: '#eef1f6' },
+    yaxis: {
+      tickfont: { size: 11 }, gridcolor: '#e6ebf3', zeroline: true,
+      ticksuffix: meta.isPct ? '%' : '', tickprefix: meta.kind === 'usd' ? '$' : '',
+    },
+    title: { text: `Comparar tiendas — ${meta.label}`, font: { size: 13 }, x: 0.02 },
+  };
+  const card = document.getElementById('sa-compare-card');
+  card.style.display = 'block';
+  Plotly.react(document.getElementById('sa-compare-chart'), traces, layout, { responsive: true, displayModeBar: false });
+  card.scrollIntoView({ behavior: 'smooth' });
+}
+
+function exportStoreReport() {
+  if (!SA.data) return;
+  const metric = SA.data.metric || 'final_margin';
+  const meta = SA_METRIC_META[metric] || SA_METRIC_META.final_margin;
+  const stores = SA.data.stores_data || [];
+  const buckets = SA.data.buckets || [];
+  const headers = ['Store','Órdenes','Revenue','Rev. Neto','Margen Neto (%)','Ship Cost','Ship Charge','Margen Ship (%)','Cambio pp','Alerta',...buckets];
+  const rows = stores.map(s => [
+    s.store, s.order_count, s.total_sale, s.final_profit, s.final_margin,
+    s.total_shipping, s.total_shipping_charged, s.shipping_margin, s.change_pp, s.alert,
+    ...(buckets.map(b => { const pt = (s.monthly||[]).find(m=>m.bucket===b); return pt ? saMetricVal(pt, metric) : ''; }))
+  ]);
+  const csv = [headers, ...rows].map(r => r.map(csvCell).join(',')).join('\n');
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = `stores_analytics_${SA.data.date_from}_${SA.data.date_to}.csv`;
+  a.click(); URL.revokeObjectURL(url);
+}
+
+// Keep old function name so switchView still works
+async function loadStoreTimeline() { await loadStoreAnalytics(); }
+
+function renderOrdersTable(orders) {
+  if (!orders.length) {
+    document.getElementById('orders-table-wrap').innerHTML = '<div class="empty">Sin órdenes para este período</div>';
+    return;
+  }
+  const rows = orders.map(o => {
+    const mid = parseFloat(o.final_margin);
+    const mCls = mid < 0 ? 'tag-red' : mid <= 20 ? 'tag-amber' : 'tag-green';
+    const sp = Number(o.shipping_pct || 0);
+    const spCls = sp >= 20 ? 'tag-red' : sp >= 12 ? 'tag-amber' : 'tag-green';
+    const noMatchDot = o.sw_matched === false ? ' <span title="Sin match ShipWorks" style="color:var(--red);font-size:10px">●</span>' : '';
+    const causeValue = String(o.cause || '');
+    const causeOptions = ['<option value="">Sin causa</option>'].concat(
+      (state.causes || []).map(c => `<option value="${escAttr(c)}" ${c === causeValue ? 'selected' : ''}>${escHtml(c)}</option>`)
+    ).join('');
+    return `<tr data-artransid="${o.ARTRANSID}" data-swnum="${o.sw_order_num || ''}" onclick="selectOrder(this,${JSON.stringify(o).replace(/"/g,'&quot;')})">
+      <td><a href="#" style="color:var(--blue);font-weight:600" onclick="return false">#${o.ARTRANSID}</a>${noMatchDot}</td>
+      <td>${o.SALESORDERID || '—'}</td>
+      <td>${o.TRANSDATE ? o.TRANSDATE.slice(0,10) : '—'}</td>
+      <td class="store-cell">${escHtml(o.sw_store || o.store || '—')}</td>
+      <td class="num">${usd(o.total_sale)}</td>
+      <td class="num">${usd(o.total_cost)}</td>
+      <td class="num">${usd(o.gross_profit)}</td>
+      <td class="num">${usd(o.total_shipping)}</td>
+      <td class="num"><span class="tag ${spCls}">${pct(o.shipping_pct)}</span></td>
+      <td class="num">${usd(o.final_profit)}</td>
+      <td class="num"><span class="tag ${mCls}">${pct(o.final_margin)}</span></td>
+      <td><select class="cause-select" onclick="event.stopPropagation()" onchange="saveOrderCause(event, '${escAttr(o.ARTRANSID)}')">${causeOptions}</select></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('orders-table-wrap').innerHTML = `
+  <div class="orders-scrollbar-top" id="orders-scrollbar-top" aria-label="Scroll horizontal de ordenes">
+    <div class="orders-scrollbar-spacer" id="orders-scrollbar-spacer"></div>
+  </div>
+  <div class="orders-table-scroll" id="orders-table-scroll">
+  <table class="orders-table" id="orders-table">
+    <thead><tr>
+      <th class="sortable" onclick="sortCol('artransid')"># Orden <span class="sort-ind" id="sort-artransid"></span></th>
+      <th class="sortable" onclick="sortCol('salesorderid')">Order # <span class="sort-ind" id="sort-salesorderid"></span></th>
+      <th class="sortable" onclick="sortCol('transdate')">Fecha <span class="sort-ind" id="sort-transdate"></span></th>
+      <th class="sortable" onclick="sortCol('store')">Store <span class="sort-ind" id="sort-store"></span></th>
+      <th class="num sortable" onclick="sortCol('total_sale')">Precio Venta <span class="sort-ind" id="sort-total_sale"></span></th>
+      <th class="num sortable" onclick="sortCol('total_cost')">Costo <span class="sort-ind" id="sort-total_cost"></span></th>
+      <th class="num sortable" onclick="sortCol('gross_profit')">Revenue (B-C) <span class="sort-ind" id="sort-gross_profit"></span></th>
+      <th class="num sortable" onclick="sortCol('total_shipping')">Shipping <span class="sort-ind" id="sort-total_shipping"></span></th>
+      <th class="num sortable" onclick="sortCol('shipping_pct')">Ship % <span class="sort-ind" id="sort-shipping_pct"></span></th>
+      <th class="num sortable" onclick="sortCol('final_profit')">Revenue Neto <span class="sort-ind" id="sort-final_profit"></span></th>
+      <th class="num sortable" onclick="sortCol('final_margin')">Margen <span class="sort-ind" id="sort-final_margin"></span></th>
+      <th class="sortable" onclick="sortCol('cause')">Causa <span class="sort-ind" id="sort-cause"></span></th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+  </table></div>`;
+  syncOrdersHorizontalScroll();
+}
+
+function syncOrdersHorizontalScroll() {
+  const topScroll = document.getElementById('orders-scrollbar-top');
+  const tableScroll = document.getElementById('orders-table-scroll');
+  const spacer = document.getElementById('orders-scrollbar-spacer');
+  const table = document.getElementById('orders-table');
+  if (!topScroll || !tableScroll || !spacer || !table) return;
+
+  spacer.style.width = `${table.scrollWidth}px`;
+  let isSyncing = false;
+
+  const sync = (source, target) => {
+    if (isSyncing) return;
+    isSyncing = true;
+    target.scrollLeft = source.scrollLeft;
+    isSyncing = false;
+  };
+
+  topScroll.addEventListener('scroll', () => sync(topScroll, tableScroll), { passive: true });
+  tableScroll.addEventListener('scroll', () => sync(tableScroll, topScroll), { passive: true });
+}
+
+async function saveOrderCause(event, artransid) {
+  event.stopPropagation();
+  const select = event.target;
+  const cause = select.value;
+  select.disabled = true;
+  try {
+    await apiSend(`/api/orders/${encodeURIComponent(artransid)}/cause`, {
+      method: 'PUT',
+      body: JSON.stringify({cause}),
+    });
+    const order = state.orders.find(o => String(o.ARTRANSID) === String(artransid));
+    if (order) order.cause = cause;
+    if (cause && !state.causes.some(c => c.toLowerCase() === cause.toLowerCase())) {
+      state.causes.push(cause);
+      state.causes.sort((a,b) => a.localeCompare(b));
+    }
+    setStatus(cause ? `Causa guardada para #${artransid}` : `Causa limpia para #${artransid}`);
+    if ((document.getElementById('f-cause')?.value || 'all') !== 'all') loadOrders();
+  } catch (e) {
+    setStatus('Error guardando causa');
+    alert(e.message);
+  } finally {
+    select.disabled = false;
+  }
+}
+
+function renderPagination() {
+  const el = document.getElementById('pagination');
+  const {currentPage: p, totalPages: tp, totalOrders: tot} = state;
+  const perPage = 50;
+  const startRow = tot ? ((p - 1) * perPage) + 1 : 0;
+  const endRow = Math.min(p * perPage, tot);
+  const pages = [];
+  pages.push(`<button class="page-btn" onclick="loadOrders(${p-1})" ${p<=1?'disabled':''}>‹</button>`);
+  const show = new Set([1, tp, p-1, p, p+1].filter(x => x >= 1 && x <= tp));
+  let prev = 0;
+  for (const pg of [...show].sort((a,b)=>a-b)) {
+    if (prev && pg - prev > 1) pages.push(`<span style="color:var(--muted);font-size:12px">…</span>`);
+    pages.push(`<button class="page-btn ${pg===p?'active':''}" onclick="loadOrders(${pg})">${pg}</button>`);
+    prev = pg;
+  }
+  pages.push(`<button class="page-btn" onclick="loadOrders(${p+1})" ${p>=tp?'disabled':''}>›</button>`);
+  pages.push(`<span class="page-info">Mostrando ${n(startRow)} a ${n(endRow)} de ${n(tot)} ordenes · ${perPage}/pagina</span>`);
+  el.innerHTML = pages.join('');
+}
+
+// Cause manager
+async function openCauseManager() {
+  try {
+    const data = await apiFetch('/api/causes');
+    state.causes = data.options || state.causes || [];
+  } catch (e) {
+    // Existing loaded options are enough to keep the editor usable.
+  }
+  renderCauseManager();
+  document.getElementById('cause-modal').style.display = 'flex';
+  document.getElementById('new-cause').value = '';
+}
+
+function closeCauseManager() {
+  document.getElementById('cause-modal').style.display = 'none';
+}
+
+function renderCauseManager() {
+  const list = document.getElementById('cause-list');
+  const options = state.causes && state.causes.length ? state.causes : [];
+  if (!options.length) {
+    list.innerHTML = '<div class="empty" style="padding:18px">No hay causas guardadas.</div>';
+    return;
+  }
+  list.innerHTML = options.map((cause, index) => `
+    <div class="cause-row">
+      <input class="cause-input" value="${escAttr(cause)}" data-index="${index}">
+      <button class="btn btn-ghost btn-sm" onclick="removeCauseOption(${index})">Quitar</button>
+    </div>
+  `).join('');
+}
+
+function addCauseOption() {
+  const input = document.getElementById('new-cause');
+  const value = input.value.trim();
+  if (!value) return;
+  if (!state.causes.some(c => c.toLowerCase() === value.toLowerCase())) {
+    state.causes.push(value);
+    state.causes.sort((a,b) => a.localeCompare(b));
+  }
+  input.value = '';
+  renderCauseManager();
+}
+
+function removeCauseOption(index) {
+  state.causes.splice(index, 1);
+  renderCauseManager();
+}
+
+async function saveCauseOptions() {
+  const options = [...document.querySelectorAll('.cause-input')]
+    .map(input => input.value.trim())
+    .filter(Boolean);
+  try {
+    const data = await apiSend('/api/causes/options', {
+      method: 'PUT',
+      body: JSON.stringify({options}),
+    });
+    state.causes = data.options || options;
+    syncSelectOptions('f-cause', state.causes, 'Todas', [
+      {value:'__assigned__', label:'Con causa'},
+      {value:'__unassigned__', label:'Sin causa'},
+    ]);
+    renderOrdersTable(state.orders);
+    setStatus('Lista de causas actualizada');
+    closeCauseManager();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+// Solution manager
+async function openSolutionManager() {
+  try {
+    const data = await apiFetch('/api/solutions');
+    state.solutions = data.options || state.solutions || [];
+  } catch (e) {
+    // Existing loaded options are enough to keep the editor usable.
+  }
+  renderSolutionManager();
+  document.getElementById('solution-modal').style.display = 'flex';
+  document.getElementById('new-solution').value = '';
+}
+
+function closeSolutionManager() {
+  document.getElementById('solution-modal').style.display = 'none';
+}
+
+function renderSolutionManager() {
+  const list = document.getElementById('solution-list');
+  const options = state.solutions && state.solutions.length ? state.solutions : [];
+  if (!options.length) {
+    list.innerHTML = '<div class="empty" style="padding:18px">No hay soluciones guardadas.</div>';
+    return;
+  }
+  list.innerHTML = options.map((solution, index) => `
+    <div class="cause-row">
+      <input class="solution-input" value="${escAttr(solution)}" data-index="${index}">
+      <button class="btn btn-ghost btn-sm" onclick="removeSolutionOption(${index})">Quitar</button>
+    </div>
+  `).join('');
+}
+
+function addSolutionOption() {
+  const input = document.getElementById('new-solution');
+  const value = input.value.trim();
+  if (!value) return;
+  if (!state.solutions.some(s => s.toLowerCase() === value.toLowerCase())) {
+    state.solutions.push(value);
+    state.solutions.sort((a,b) => a.localeCompare(b));
+  }
+  input.value = '';
+  renderSolutionManager();
+}
+
+function removeSolutionOption(index) {
+  state.solutions.splice(index, 1);
+  renderSolutionManager();
+}
+
+async function saveSolutionOptions() {
+  const options = [...document.querySelectorAll('.solution-input')]
+    .map(input => input.value.trim())
+    .filter(Boolean);
+  try {
+    const data = await apiSend('/api/solutions/options', {
+      method: 'PUT',
+      body: JSON.stringify({options}),
+    });
+    state.solutions = data.options || options;
+    renderSegments({ groups: state.segments, total_assigned: state.segments.reduce((sum, group) => sum + Number((group.summary || {}).order_count || 0), 0) });
+    setStatus('Lista de soluciones actualizada');
+    closeSolutionManager();
+  } catch (e) {
+    alert(e.message);
+  }
+}
+
+function solutionOptionsHtml(currentValue) {
+  const value = String(currentValue || '');
+  return ['<option value="">Sin solucion</option>'].concat(
+    (state.solutions || []).map(solution => `<option value="${escAttr(solution)}" ${solution === value ? 'selected' : ''}>${escHtml(solution)}</option>`)
+  ).join('');
+}
+
+function updateOrderSolutionLocal(artransid, solution) {
+  const key = String(artransid);
+  const update = order => {
+    if (String(order.ARTRANSID) === key) order.solution = solution;
+  };
+  (state.orders || []).forEach(update);
+  (state.segments || []).forEach(group => (group.orders || []).forEach(update));
+}
+
+async function saveOrderSolution(event, artransid) {
+  event.stopPropagation();
+  const select = event.target;
+  const solution = select.value;
+  select.disabled = true;
+  try {
+    await apiSend(`/api/orders/${encodeURIComponent(artransid)}/solution`, {
+      method: 'PUT',
+      body: JSON.stringify({solution}),
+    });
+    updateOrderSolutionLocal(artransid, solution);
+    if (solution && !state.solutions.some(s => s.toLowerCase() === solution.toLowerCase())) {
+      state.solutions.push(solution);
+      state.solutions.sort((a,b) => a.localeCompare(b));
+    }
+    setStatus(solution ? `Solucion guardada para #${artransid}` : `Solucion limpia para #${artransid}`);
+  } catch (e) {
+    setStatus('Error guardando solucion');
+    alert(e.message);
+  } finally {
+    select.disabled = false;
+  }
+}
+
+// Segments
+function setSegmentMarginPreset(value) {
+  document.getElementById('seg-margin-preset').value = value;
+  loadSegments();
+}
+
+function setSegmentShippingPctMin(value) {
+  document.getElementById('seg-shipratio-min').value = value;
+  loadSegments();
+}
+
+function syncSegmentsFromOrders() {
+  document.getElementById('seg-from').value = document.getElementById('f-from').value;
+  document.getElementById('seg-to').value = document.getElementById('f-to').value;
+  document.getElementById('seg-store').value = document.getElementById('f-store').value || 'all';
+  document.getElementById('seg-margin-preset').value = document.getElementById('f-margin-preset').value || 'all';
+  document.getElementById('seg-shipratio-min').value = document.getElementById('f-shipratio-min').value || '';
+  loadSegments();
+}
+
+async function loadSegments() {
+  const from = document.getElementById('seg-from').value;
+  const to = document.getElementById('seg-to').value;
+  const store = document.getElementById('seg-store')?.value || 'all';
+  const marginPreset = document.getElementById('seg-margin-preset')?.value || 'all';
+  const shipRatioMin = document.getElementById('seg-shipratio-min')?.value || '';
+  const params = new URLSearchParams({date_from: from, date_to: to});
+  if (store && store !== 'all') params.set('store', store);
+  if (marginPreset && marginPreset !== 'all') params.set('margin_max', marginPreset);
+  if (shipRatioMin !== '') params.set('shipping_pct_min', shipRatioMin);
+
+  document.getElementById('segments-wrap').innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  document.getElementById('segments-status').textContent = 'Cargando...';
+  try {
+    const data = await apiFetch(`/api/segments?${params}`);
+    state.segments = data.groups || [];
+    state.stores = data.stores || state.stores || [];
+    state.causes = data.causes || state.causes || [];
+    state.solutions = data.solutions || state.solutions || [];
+    syncSelectOptions('seg-store', state.stores, 'Todos los stores');
+    renderSegments(data);
+    document.getElementById('segments-status').textContent = `${n(data.total_assigned || 0)} ordenes asignadas`;
+    setStatus(`Actualizado: ${new Date().toLocaleTimeString('es')}`);
+  } catch (e) {
+    document.getElementById('segments-wrap').innerHTML =
+      `<div class="empty">Error cargando segmentos<br><small>${escHtml(e.message)}</small></div>`;
+    document.getElementById('segments-status').textContent = 'Error';
+  }
+}
+
+function renderSegments(data) {
+  const groups = data.groups || [];
+  const totalAssigned = Number(data.total_assigned || 0);
+  const totalRevenue = groups.reduce((sum, g) => sum + Number((g.summary || {}).total_sale || 0), 0);
+  const totalShippingCost = groups.reduce((sum, g) => sum + Number((g.summary || {}).total_shipping || 0), 0);
+  const totalShippingCharged = groups.reduce((sum, g) => sum + Number((g.summary || {}).total_shipping_charged || 0), 0);
+  const totalShippingProfit = totalShippingCharged - totalShippingCost;
+  const totalProfit = groups.reduce((sum, g) => sum + Number((g.summary || {}).final_profit || 0), 0);
+  const margin = totalRevenue ? (totalProfit / totalRevenue * 100) : 0;
+  const shipMargin = totalShippingCharged ? (totalShippingProfit / totalShippingCharged * 100) : 0;
+  document.getElementById('segments-summary').innerHTML = `
+    <div class="summary-tile"><div class="summary-label">Asignadas</div><div class="summary-value">${n(totalAssigned)}</div></div>
+    <div class="summary-tile"><div class="summary-label">Ship cost</div><div class="summary-value">${usd(totalShippingCost)}</div></div>
+    <div class="summary-tile"><div class="summary-label">Ship charge</div><div class="summary-value">${usd(totalShippingCharged)}</div></div>
+    <div class="summary-tile"><div class="summary-label">Ship margen</div><div class="summary-value">${shipMarginTag(totalShippingCharged, shipMargin)}</div></div>
+  `;
+  if (!groups.length) {
+    document.getElementById('segments-wrap').innerHTML =
+      '<div class="empty">Todavia no hay ordenes con causa asignada en este filtro.</div>';
+    return;
+  }
+  document.getElementById('segments-wrap').innerHTML = groups.map(group => {
+    const s = group.summary || {};
+    const orders = group.orders || [];
+    const shippingBad = isShippingBadGroup(group.cause);
+    return `
+      <article class="segment-card">
+        <div class="segment-card-head">
+          <div>
+            <div class="segment-name">${escHtml(group.cause || 'Sin causa')}</div>
+            <div class="segment-meta">${n(s.order_count)} ordenes · ${group.visible_orders || orders.length} visibles</div>
+          </div>
+          <div class="segment-kpis">
+            <div class="mini-kpi"><span>Venta</span><strong>${usd(s.total_sale)}</strong></div>
+            <div class="mini-kpi"><span>Cost</span><strong>${usd(s.total_shipping)}</strong></div>
+            <div class="mini-kpi"><span>Charge</span><strong>${usd(s.total_shipping_charged)}</strong></div>
+            <div class="mini-kpi"><span>Ship mgn</span><strong>${shipMarginTag(s.total_shipping_charged, s.shipping_margin)}</strong></div>
+            <div class="mini-kpi"><span>Ord mgn</span><strong>${pct(s.final_margin)}</strong></div>
+            ${shippingBad ? `<button class="btn btn-primary btn-sm" onclick="downloadShippingRequest('${escAttr(group.cause)}')">Descargar solicitud</button>` : ''}
+          </div>
+        </div>
+        <div class="segment-table">
+          <table>
+            <thead><tr>
+              <th>Orden</th><th>Store</th><th>SKU</th><th class="num">Ship cost</th><th class="num">Ship charge</th><th class="num">Gap</th><th class="num">Ship margen</th><th class="num">Ref mismas partes</th><th>Solucion</th>${shippingBad ? '<th class="num">Solicitud</th>' : ''}<th class="num">Margen orden</th>
+            </tr></thead>
+            <tbody>
+              ${orders.map(o => `
+                <tr onclick="openSegmentOrder(${JSON.stringify(o).replace(/"/g,'&quot;')})">
+                  <td><a href="#" onclick="event.preventDefault();event.stopPropagation();openSegmentOrder(${JSON.stringify(o).replace(/"/g,'&quot;')})" style="color:var(--blue);font-weight:700">#${escHtml(o.ARTRANSID)}</a></td>
+                  <td class="store-cell">${escHtml(o.sw_store || o.store || '—')}</td>
+                  <td class="sku-cell"><strong>${escHtml(o.sku_mix || '—')}</strong><span class="delta-note">${escHtml(o.parts_label || '')}</span></td>
+                  <td class="num">${usd(o.total_shipping)}</td>
+                  <td class="num">${usd(o.shipping_charged)}<span class="delta-note">${escHtml(o.shipping_charge_source || '')}</span></td>
+                  <td class="num">${moneyDeltaTag(Number(o.total_shipping || 0) - Number(o.shipping_charged || 0))}</td>
+                  <td class="num">${shipMarginTag(o.shipping_charged, o.shipping_margin)}</td>
+                  <td class="num">${samePartsCell(o)}</td>
+                  <td><select class="solution-select" onclick="event.stopPropagation()" onchange="saveOrderSolution(event, '${escAttr(o.ARTRANSID)}')">${solutionOptionsHtml(o.solution)}</select></td>
+                  ${shippingBad ? `<td class="num"><input class="request-input" type="number" min="0" step="0.01" placeholder="0.00" value="${escAttr(requestValue(o.ARTRANSID))}" onclick="event.stopPropagation()" onchange="updateShippingRequest(event, '${escAttr(o.ARTRANSID)}')" oninput="updateShippingRequest(event, '${escAttr(o.ARTRANSID)}')"></td>` : ''}
+                  <td class="num">${marginTag(o.final_margin)}</td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </article>
+    `;
+  }).join('');
+}
+
+function downloadShippingRequest(causeName) {
+  const group = (state.segments || []).find(g => isShippingBadGroup(g.cause));
+  if (!group) {
+    alert('No encontre el grupo Shipping cobramos mal.');
+    return;
+  }
+  const rows = (group.orders || [])
+    .map(order => ({order, requested: requestValue(order.ARTRANSID)}))
+    .filter(row => String(row.requested || '').trim() !== '');
+
+  if (!rows.length) {
+    alert('No hay solicitudes con valor para descargar.');
+    return;
+  }
+
+  const header = ['SKU', 'MFR', 'Tienda', 'Shipping charge', 'New shipping solicitado'];
+  const csvRows = [header].concat(rows.map(({order, requested}) => [
+    order.parts_export_sku || order.parts_label || '',
+    order.parts_export_mfr || '',
+    order.sw_store || order.store || '',
+    Number(order.shipping_charged || 0).toFixed(2),
+    Number(requested || 0).toFixed(2),
+  ]));
+  const csv = csvRows.map(row => row.map(csvCell).join(',')).join('\r\n');
+  const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  const date = new Date().toISOString().slice(0,10);
+  a.href = url;
+  a.download = `shipping_solicitud_${date}.csv`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+}
+
+function openSegmentOrder(order) {
+  openOrderModal(order);
+}
+
+function closeOrderModal() {
+  document.getElementById('order-modal').style.display = 'none';
+}
+
+function orderModalShell(order) {
+  const shipGap = Number(order.total_shipping || 0) - Number(order.shipping_charged || 0);
+  const sameParts = samePartsCell(order);
+  return `
+    <div class="detail-kpis">
+      <div class="detail-kpi"><span>Venta</span><strong>${usd(order.total_sale)}</strong></div>
+      <div class="detail-kpi"><span>Ship cost</span><strong>${usd(order.total_shipping)}</strong></div>
+      <div class="detail-kpi"><span>Ship charge</span><strong>${usd(order.shipping_charged)}</strong></div>
+      <div class="detail-kpi"><span>Gap</span><strong>${moneyDeltaTag(shipGap)}</strong></div>
+      <div class="detail-kpi"><span>Margen orden</span><strong>${marginTag(order.final_margin)}</strong></div>
+    </div>
+    <div class="detail-grid">
+      <section class="detail-section">
+        <div class="detail-section-title">Orden</div>
+        <div class="detail-section-body detail-list">
+          <div class="detail-list-row"><span>Order #</span><strong>${escHtml(order.SALESORDERID || '—')}</strong></div>
+          <div class="detail-list-row"><span>Fecha</span><strong>${escHtml(order.TRANSDATE ? String(order.TRANSDATE).slice(0,10) : '—')}</strong></div>
+          <div class="detail-list-row"><span>Store</span><strong>${escHtml(order.sw_store || order.store || '—')}</strong></div>
+          <div class="detail-list-row"><span>ShipWorks #</span><strong>${escHtml(order.sw_order_num || '—')}</strong></div>
+          <div class="detail-list-row"><span>Causa</span><strong>${escHtml(order.cause || 'Sin causa')}</strong></div>
+        </div>
+      </section>
+      <section class="detail-section">
+        <div class="detail-section-title">Referencia pricing</div>
+        <div class="detail-section-body detail-list">
+          <div class="detail-list-row"><span>Tipo SKU</span><strong>${escHtml(order.sku_mix || '—')}</strong></div>
+          <div class="detail-list-row"><span>Partes</span><strong style="text-align:right">${escHtml(order.parts_label || '—')}</strong></div>
+          <div class="detail-list-row"><span>Avg mismas partes</span><strong>${sameParts}</strong></div>
+          <div class="detail-list-row"><span>Ship charge source</span><strong>${escHtml(order.shipping_charge_source || '—')}</strong></div>
+          <div class="detail-list-row"><span>Ship margen</span><strong>${shipMarginTag(order.shipping_charged, order.shipping_margin)}</strong></div>
+        </div>
+      </section>
+    </div>
+    <div class="detail-grid">
+      <section class="detail-section">
+        <div class="detail-section-title">Productos</div>
+        <div class="detail-section-body" id="order-modal-lines"><div class="loading-center"><div class="spinner"></div></div></div>
+      </section>
+      <section class="detail-section">
+        <div class="detail-section-title">Shipping labels</div>
+        <div class="detail-section-body" id="order-modal-shipping"><div class="loading-center"><div class="spinner"></div></div></div>
+      </section>
+    </div>
+  `;
+}
+
+async function openOrderModal(order) {
+  document.getElementById('order-modal-title').textContent = `Orden #${order.ARTRANSID || '—'}`;
+  document.getElementById('order-modal-sub').textContent = `${order.sw_store || order.store || ''} · ${order.TRANSDATE ? String(order.TRANSDATE).slice(0,10) : ''}`;
+  document.getElementById('order-modal-body').innerHTML = orderModalShell(order);
+  document.getElementById('order-modal').style.display = 'flex';
+
+  const swNum = order.sw_order_num || '';
+  const [linesResult, shippingResult] = await Promise.allSettled([
+    apiFetch(`/api/orders/${order.ARTRANSID}/lines`),
+    apiFetch(`/api/orders/${order.ARTRANSID}/shipping?sw_order_num=${encodeURIComponent(swNum)}`),
+  ]);
+
+  if (linesResult.status === 'fulfilled') {
+    renderOrderModalLines(linesResult.value.lines || []);
+  } else {
+    document.getElementById('order-modal-lines').innerHTML = `<div class="empty">Error cargando productos<br><small>${escHtml(linesResult.reason.message)}</small></div>`;
+  }
+
+  if (shippingResult.status === 'fulfilled') {
+    renderOrderModalShipping(shippingResult.value.shipments || [], order);
+  } else {
+    document.getElementById('order-modal-shipping').innerHTML = `<div class="empty">Error cargando shipping<br><small>${escHtml(shippingResult.reason.message)}</small></div>`;
+  }
+}
+
+function renderOrderModalLines(lines) {
+  const target = document.getElementById('order-modal-lines');
+  if (!target) return;
+  if (!lines.length) {
+    target.innerHTML = '<div class="empty">Sin lineas</div>';
+    return;
+  }
+  const rows = lines.map(l => {
+    const margin = Number(l.line_margin || 0);
+    return `<tr>
+      <td>${escHtml(l.sku || '—')}</td>
+      <td>${escHtml(l.brand || '—')}</td>
+      <td>${escHtml(l.DESCRIPTION || '—')}</td>
+      <td class="num">${n(l.qty)}</td>
+      <td class="num">${usd(l.line_sale)}</td>
+      <td class="num">${usd(l.line_cost)}</td>
+      <td class="num">${marginTag(margin)}</td>
+    </tr>`;
+  }).join('');
+  target.innerHTML = `
+    <div class="detail-table-wrap">
+      <table>
+        <thead><tr><th>SKU</th><th>MFR</th><th>Descripcion</th><th class="num">Qty</th><th class="num">Venta</th><th class="num">Costo</th><th class="num">Margen</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+
+function renderOrderModalShipping(shipments, order) {
+  const target = document.getElementById('order-modal-shipping');
+  if (!target) return;
+  const rows = shipments.map((s, index) => `
+    <tr>
+      <td>${escHtml(s.is_return ? 'Return' : 'Outbound')}</td>
+      <td>${escHtml(s.shipment_id || `Label ${index + 1}`)}</td>
+      <td>${escHtml(s.ship_date ? String(s.ship_date).slice(0,10) : '—')}</td>
+      <td class="num">${usd(s.cost)}</td>
+    </tr>
+  `).join('');
+  const totalLabels = shipments.reduce((sum, s) => sum + Number(s.cost || 0), 0);
+  const shipGap = Number(order.total_shipping || totalLabels || 0) - Number(order.shipping_charged || 0);
+  target.innerHTML = `
+    <div class="detail-list" style="margin-bottom:12px">
+      <div class="detail-list-row"><span>Ship cost</span><strong>${usd(order.total_shipping || totalLabels)}</strong></div>
+      <div class="detail-list-row"><span>Ship charge</span><strong>${usd(order.shipping_charged)} ${order.shipping_charge_source ? `<small class="muted-cell">${escHtml(order.shipping_charge_source)}</small>` : ''}</strong></div>
+      <div class="detail-list-row"><span>Gap</span><strong>${moneyDeltaTag(shipGap)}</strong></div>
+      <div class="detail-list-row"><span>Ship margen</span><strong>${shipMarginTag(order.shipping_charged, order.shipping_margin)}</strong></div>
+    </div>
+    <div class="detail-table-wrap">
+      <table>
+        <thead><tr><th>Tipo</th><th>Shipment</th><th>Fecha</th><th class="num">Costo</th></tr></thead>
+        <tbody>${rows || '<tr><td colspan="4" class="muted-cell">Sin labels</td></tr>'}</tbody>
+      </table>
+    </div>`;
+}
+
+// SKU analytics
+function resetSkuDates() {
+  const yesterday = yesterdayISO();
+  document.getElementById('sku-from').value = yesterday;
+  document.getElementById('sku-to').value = yesterday;
+  document.getElementById('sku-search').value = '';
+  document.getElementById('sku-store').value = 'all';
+  loadSkus();
+}
+
+async function loadSkus() {
+  const from = document.getElementById('sku-from').value;
+  const to = document.getElementById('sku-to').value;
+  const store = document.getElementById('sku-store')?.value || 'all';
+  const search = document.getElementById('sku-search')?.value.trim() || '';
+  const params = new URLSearchParams({date_from: from, date_to: to, store, search});
+  document.getElementById('sku-status').textContent = 'Cargando...';
+  document.getElementById('sku-profit-wrap').innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  document.getElementById('sku-shipping-wrap').innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  try {
+    const data = await apiFetch(`/api/skus?${params}`);
+    state.skus = data.skus || [];
+    state.skuShippingNegative = data.shipping_negative || [];
+    state.stores = data.stores || state.stores || [];
+    syncSelectOptions('sku-store', state.stores, 'Todos los stores');
+    renderSkuView(data);
+    document.getElementById('sku-status').textContent = `${n((data.summary || {}).sku_count || 0)} SKUs`;
+    setStatus(`Actualizado: ${new Date().toLocaleTimeString('es')}`);
+  } catch (e) {
+    document.getElementById('sku-profit-wrap').innerHTML = `<div class="empty">Error cargando SKUs<br><small>${escHtml(e.message)}</small></div>`;
+    document.getElementById('sku-shipping-wrap').innerHTML = '';
+    document.getElementById('sku-status').textContent = 'Error';
+  }
+}
+
+function renderSkuView(data) {
+  const s = data.summary || {};
+  document.getElementById('sku-summary').innerHTML = `
+    <div class="summary-tile"><div class="summary-label">SKUs</div><div class="summary-value">${n(s.sku_count || 0)}</div></div>
+    <div class="summary-tile"><div class="summary-label">Revenue SKU</div><div class="summary-value">${usd(s.total_sale)}</div></div>
+    <div class="summary-tile"><div class="summary-label">Profit SKU</div><div class="summary-value">${usd(s.gross_profit)}</div></div>
+    <div class="summary-tile"><div class="summary-label">Margen SKU</div><div class="summary-value">${marginTag(s.gross_margin)}</div></div>
+  `;
+  renderSkuProfitTable(state.skus || []);
+  renderSkuShippingNegativeTable(state.skuShippingNegative || []);
+}
+
+function skuIdentity(row) {
+  return `${escHtml(row.sku || '—')}<span class="delta-note">${escHtml(row.mfr || '—')} · ${escHtml(row.description || '')}</span>`;
+}
+
+function renderSkuProfitTable(rows) {
+  document.getElementById('sku-profit-count').textContent = `${n(rows.length)} SKUs`;
+  if (!rows.length) {
+    document.getElementById('sku-profit-wrap').innerHTML = '<div class="empty">Sin SKUs para este periodo</div>';
+    return;
+  }
+  document.getElementById('sku-profit-wrap').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>SKU</th><th class="num">Ordenes</th><th class="num">Qty</th><th class="num">Revenue</th><th class="num">Profit</th><th class="num">Margen</th><th class="num">Avg ord</th><th class="num">Max</th><th class="num">Low</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map(row => `
+          <tr onclick="openSkuModal(${JSON.stringify(row).replace(/"/g,'&quot;')})">
+            <td>${skuIdentity(row)}</td>
+            <td class="num">${n(row.order_count)}</td>
+            <td class="num">${n(row.qty)}</td>
+            <td class="num">${usd(row.total_sale)}</td>
+            <td class="num">${usd(row.gross_profit)}</td>
+            <td class="num">${marginTag(row.gross_margin)}</td>
+            <td class="num">${marginTag(row.avg_order_margin)}</td>
+            <td class="num">${marginTag(row.max_order_margin)}</td>
+            <td class="num">${marginTag(row.low_order_margin)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>`;
+}
+
+function renderSkuShippingNegativeTable(rows) {
+  document.getElementById('sku-shipping-count').textContent = `${n(rows.length)} SKUs`;
+  if (!rows.length) {
+    document.getElementById('sku-shipping-wrap').innerHTML = '<div class="empty">Sin items negativos por shipping</div>';
+    return;
+  }
+  document.getElementById('sku-shipping-wrap').innerHTML = `
+    <table>
+      <thead><tr>
+        <th>SKU</th><th class="num">Ordenes afectadas</th><th class="num">Ship loss</th><th class="num">Negativo</th><th class="num">Ship cost</th><th class="num">Ship charge</th><th class="num">Margen</th>
+      </tr></thead>
+      <tbody>
+        ${rows.map(row => `
+          <tr onclick="openSkuModal(${JSON.stringify(row).replace(/"/g,'&quot;')})">
+            <td>${skuIdentity(row)}</td>
+            <td class="num">${n(row.negative_shipping_orders)}</td>
+            <td class="num">${usd(row.shipping_loss)}</td>
+            <td class="num"><span class="tag tag-red">${usd(row.negative_shipping_profit)}</span></td>
+            <td class="num">${usd(row.allocated_shipping_cost)}</td>
+            <td class="num">${usd(row.allocated_shipping_charge)}</td>
+            <td class="num">${marginTag(row.gross_margin)}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>`;
+}
+
+async function openSkuModal(row) {
+  document.getElementById('order-modal-title').textContent = `${row.sku || 'SKU'} · ${row.mfr || ''}`;
+  document.getElementById('order-modal-sub').textContent = row.description || 'Ordenes del SKU en el periodo';
+  document.getElementById('order-modal').style.display = 'flex';
+  document.getElementById('order-modal-body').innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+  const from = document.getElementById('sku-from').value;
+  const to = document.getElementById('sku-to').value;
+  const store = document.getElementById('sku-store')?.value || 'all';
+  const params = new URLSearchParams({date_from: from, date_to: to, store, sku: row.sku || '', mfr: row.mfr || ''});
+  try {
+    const data = await apiFetch(`/api/skus/orders?${params}`);
+    renderSkuModal(row, data.orders || []);
+  } catch (e) {
+    document.getElementById('order-modal-body').innerHTML = `<div class="empty">Error cargando ordenes del SKU<br><small>${escHtml(e.message)}</small></div>`;
+  }
+}
+
+function renderSkuModal(row, orders) {
+  document.getElementById('order-modal-body').innerHTML = `
+    <div class="detail-kpis">
+      <div class="detail-kpi"><span>Ordenes</span><strong>${n(row.order_count)}</strong></div>
+      <div class="detail-kpi"><span>Qty</span><strong>${n(row.qty)}</strong></div>
+      <div class="detail-kpi"><span>Profit</span><strong>${usd(row.gross_profit)}</strong></div>
+      <div class="detail-kpi"><span>Margen</span><strong>${marginTag(row.gross_margin)}</strong></div>
+      <div class="detail-kpi"><span>Low</span><strong>${marginTag(row.low_order_margin)}</strong></div>
+    </div>
+    <section class="detail-section">
+      <div class="detail-section-title">Micro margen por orden</div>
+      <div class="detail-table-wrap">
+        <table>
+          <thead><tr>
+            <th>Orden</th><th>Store</th><th class="num">Qty</th><th class="num">Venta SKU</th><th class="num">Costo SKU</th><th class="num">Profit SKU</th><th class="num">Margen SKU</th><th class="num">Ship cost alloc</th><th class="num">Ship charge alloc</th><th class="num">Profit c/ship</th>
+          </tr></thead>
+          <tbody>
+            ${orders.map(order => `
+              <tr onclick="openOrderModal(${JSON.stringify(order).replace(/"/g,'&quot;')})">
+                <td><a href="#" onclick="event.preventDefault();event.stopPropagation();openOrderModal(${JSON.stringify(order).replace(/"/g,'&quot;')})" style="color:var(--blue);font-weight:700">#${escHtml(order.ARTRANSID)}</a></td>
+                <td class="store-cell">${escHtml(order.sw_store || order.store || '—')}</td>
+                <td class="num">${n(order.sku_qty)}</td>
+                <td class="num">${usd(order.sku_sale)}</td>
+                <td class="num">${usd(order.sku_cost)}</td>
+                <td class="num">${usd(order.sku_profit)}</td>
+                <td class="num">${marginTag(order.sku_margin)}</td>
+                <td class="num">${usd(order.allocated_shipping_cost)}</td>
+                <td class="num">${usd(order.allocated_shipping_charge)}</td>
+                <td class="num">${moneyDeltaTag(order.sku_profit_after_shipping)}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Side panel
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function selectOrder(tr, order) {
+  document.querySelectorAll('tbody tr').forEach(r => r.classList.remove('selected'));
+  tr.classList.add('selected');
+  state.selectedOrder = order;
+  openPanel(order);
+}
+
+function openPanel(order) {
+  const panel = document.getElementById('side-panel');
+  panel.classList.add('open');
+  document.getElementById('sp-title').textContent = `Orden #${order.ARTRANSID}`;
+  document.getElementById('sp-sub').textContent   = order.CUSTOMERNAME || '';
+  // Reference numbers info
+  const matched  = order.sw_matched;
+  const rawRef   = order.REFERENCE   || '—';
+  const swNum    = order.sw_order_num || '—';
+  const salesOid = order.SALESORDERID || '—';
+  const refsEl   = document.getElementById('sp-refs');
+  refsEl.style.display = '';
+  refsEl.innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px 16px">
+      <div><span style="color:var(--muted)">ARTRANSID:</span> <strong>${order.ARTRANSID}</strong></div>
+      <div><span style="color:var(--muted)">Sales Order:</span> <strong>${salesOid}</strong></div>
+      <div><span style="color:var(--muted)">Ref. Pronto:</span> <strong>${rawRef}</strong></div>
+      <div><span style="color:var(--muted)">ShipWorks #:</span> <strong>${swNum}</strong></div>
+    </div>
+    <div style="margin-top:6px">${matched ? '<span class="tag tag-green">✅ Match encontrado en ShipWorks</span>' : '<span class="tag tag-red">❌ Sin match en ShipWorks</span>'}</div>`;
+  state.activeTab = 'products';
+  renderTabButtons(0);
+  loadPanelTab('products', order);
+}
+
+function closePanel() {
+  document.getElementById('side-panel').classList.remove('open');
+  document.querySelectorAll('tbody tr').forEach(r => r.classList.remove('selected'));
+  state.selectedOrder = null;
+}
+
+function switchTab(tab) {
+  state.activeTab = tab;
+  renderTabButtons(state._shipCount || 0);
+  if (state.selectedOrder) loadPanelTab(tab, state.selectedOrder);
+}
+
+function renderTabButtons(shipCount) {
+  document.querySelectorAll('.side-tab').forEach(el => {
+    const t = el.dataset.tab;
+    el.classList.toggle('active', t === state.activeTab);
+    if (t === 'shipping') el.textContent = `Shipping (${shipCount})`;
+    if (t === 'products') el.textContent = 'Productos';
+  });
+}
+
+async function loadPanelTab(tab, order) {
+  const body = document.getElementById('sp-body');
+  body.innerHTML = '<div class="loading-center"><div class="spinner"></div></div>';
+
+  if (tab === 'products') {
+    try {
+      const data = await apiFetch(`/api/orders/${order.ARTRANSID}/lines`);
+      renderProductLines(data.lines || []);
+    } catch(e) {
+      body.innerHTML = `<div class="empty">Error: ${e.message}</div>`;
+    }
+  } else {
+    // shipping tab
+    const swNum = order.sw_order_num || '';
+    try {
+      const data = await apiFetch(`/api/orders/${order.ARTRANSID}/shipping?sw_order_num=${encodeURIComponent(swNum)}`);
+      const shipments = data.shipments || [];
+      state._shipCount = shipments.length;
+      renderTabButtons(shipments.length);
+      renderShippingPanel(shipments, order);
+    } catch(e) {
+      body.innerHTML = `<div class="empty">Error: ${e.message}</div>`;
+    }
+  }
+}
+
+function renderProductLines(lines) {
+  const body = document.getElementById('sp-body');
+  if (!lines.length) { body.innerHTML = '<div class="empty">Sin líneas</div>'; return; }
+
+  const rows = lines.map(l => {
+    const sale = parseFloat(l.line_sale || 0);
+    const cost = parseFloat(l.line_cost || 0);
+    const margin = parseFloat(l.line_margin || 0);
+    const mCls = margin < 0 ? 'tag-red' : margin < 10 ? 'tag-amber' : 'tag-green';
+    return `<tr>
+      <td style="font-size:12px;color:var(--muted)">${l.sku||'—'}</td>
+      <td style="font-size:12px;max-width:160px;overflow:hidden;text-overflow:ellipsis">${l.DESCRIPTION||'—'}</td>
+      <td class="num" style="font-size:12px">${usd(sale)}</td>
+      <td class="num" style="font-size:12px">${usd(cost)}</td>
+      <td class="num" style="font-size:12px"><span class="tag ${mCls}" style="font-size:10px">${pct(margin)}</span></td>
+    </tr>`;
+  }).join('');
+
+  const totSale  = lines.reduce((a,l)=>a+parseFloat(l.line_sale||0),0);
+  const totCost  = lines.reduce((a,l)=>a+parseFloat(l.line_cost||0),0);
+  const totProfit= totSale - totCost;
+  const totMargin= totSale ? (totProfit/totSale*100) : 0;
+  const mCls = totMargin < 0 ? 'tag-red' : totMargin < 10 ? 'tag-amber' : 'tag-green';
+
+  body.innerHTML = `
+  <div style="overflow-x:auto">
+  <table>
+    <thead><tr>
+      <th>SKU</th><th>Descripción</th>
+      <th class="num">Precio Venta</th><th class="num">Costo</th><th class="num">Margin</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr style="background:#f8f9fd;font-weight:700">
+      <td colspan="2">Totales</td>
+      <td class="num" style="font-size:12px">${usd(totSale)}</td>
+      <td class="num" style="font-size:12px">${usd(totCost)}</td>
+      <td class="num" style="font-size:12px"><span class="tag ${mCls}" style="font-size:10px">${pct(totMargin)}</span></td>
+    </tr></tfoot>
+  </table></div>`;
+}
+
+function renderShippingPanel(shipments, order) {
+  const body = document.getElementById('sp-body');
+  const outbound = shipments.filter(s => !s.is_return);
+  const returns  = shipments.filter(s =>  s.is_return);
+  const totOut   = outbound.reduce((a,s)=>a+s.cost,0);
+  const totRet   = returns.reduce((a,s)=>a+s.cost,0);
+  const totAll   = totOut + totRet;
+
+  const makeRow = (label, amount, desc, bold) => `
+    <div class="ship-row" ${bold?'style="font-weight:700"':''}>
+      <div>
+        <div ${bold?'':'style="color:var(--muted)"'}>${label}</div>
+        ${desc?`<div style="font-size:11px;color:var(--muted)">${desc}</div>`:''}
+      </div>
+      <div class="ship-amount">${usd(amount)}</div>
+    </div>`;
+
+  let html = '';
+  outbound.forEach((s,i) => { html += makeRow(`Shipping - Label ${i+1}`, s.cost, s.ship_date ? s.ship_date.slice(0,10) : '', false); });
+  returns.forEach((s,i)  => { html += makeRow(`Return Label ${i+1}`, s.cost, '', false); });
+  if (totRet > 0) html += makeRow('Total Shipping Salida', totOut, '', false);
+  if (totRet > 0) html += makeRow('Total Return Ship', totRet, '', false);
+  html += makeRow('Total Shipping', totAll, '', true);
+
+  // Final summary
+  const gp = parseFloat(order.gross_profit || 0);
+  const fp = gp - totAll;
+  const fm = parseFloat(order.total_sale || 0) ? fp / parseFloat(order.total_sale) * 100 : 0;
+  const mCls = fm < 0 ? 'tag-red' : fm < 10 ? 'tag-amber' : 'tag-green';
+
+  body.innerHTML = `
+  <div>${html}</div>
+  <div style="margin-top:14px;padding-top:14px;border-top:2px solid var(--border)">
+    <div class="ship-row">
+      <div>Gross Profit</div>
+      <div class="ship-amount">${usd(gp)}</div>
+    </div>
+    <div class="ship-row" style="font-weight:700">
+      <div>Final Profit (después de shipping)</div>
+      <div class="ship-amount"><span class="tag ${mCls}">${usd(fp)}</span></div>
+    </div>
+    <div class="ship-row">
+      <div>Final Margin</div>
+      <div class="ship-amount"><span class="tag ${mCls}">${pct(fm)}</span></div>
+    </div>
+  </div>
+  ${order.sw_order_num ? `<div style="margin-top:12px;font-size:11px;color:var(--muted)">SW Order: ${order.sw_order_num}</div>` : ''}`;
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Shipping view
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function rangeFilterMatches(row) {
+  const f = state.shippingFilters || {};
+  return f.priceMin != null &&
+    Math.abs(Number(f.priceMin) - Number(row.min_price)) < 0.001 &&
+    Math.abs(Number(f.priceMax) - Number(row.max_price)) < 0.001;
+}
+
+function stateFilterMatches(abbr) {
+  const active = (state.shippingFilters?.shipState || '').toUpperCase();
+  return active && active === String(abbr || '').toUpperCase();
+}
+
+function renderActiveShippingFilters() {
+  const el = document.getElementById('active-ship-filters');
+  if (!el) return;
+
+  const f = state.shippingFilters || {};
+  const chips = [];
+  if (f.priceMin != null && f.priceMax != null) {
+    chips.push(`<span class="filter-chip">Rango: ${escHtml(f.priceLabel || `${usd(f.priceMin)} - ${usd(f.priceMax)}`)} <button onclick="clearShippingFilter('range')" title="Quitar rango">×</button></span>`);
+  }
+  if (f.shipState) {
+    const label = `${f.shipState}${STATE_NAMES[f.shipState] ? ' ' + STATE_NAMES[f.shipState] : ''}`;
+    chips.push(`<span class="filter-chip">Estado: ${escHtml(label)} <button onclick="clearShippingFilter('state')" title="Quitar estado">×</button></span>`);
+  }
+
+  el.innerHTML = chips.join('');
+  el.style.display = chips.length ? 'flex' : 'none';
+}
+
+function toggleRangeFilter(filter) {
+  const f = state.shippingFilters;
+  const minPrice = Number(filter?.min);
+  const maxPrice = Number(filter?.max);
+  if (!Number.isFinite(minPrice) || !Number.isFinite(maxPrice)) return;
+
+  if (f.priceMin != null &&
+      Math.abs(Number(f.priceMin) - minPrice) < 0.001 &&
+      Math.abs(Number(f.priceMax) - maxPrice) < 0.001) {
+    f.priceMin = null;
+    f.priceMax = null;
+    f.priceLabel = '';
+  } else {
+    f.priceMin = minPrice;
+    f.priceMax = maxPrice;
+    f.priceLabel = filter?.label || '';
+  }
+  renderActiveShippingFilters();
+  loadShipping();
+}
+
+function toggleStateFilter(abbr) {
+  const next = String(abbr || '').toUpperCase().trim();
+  if (!next) return;
+  const f = state.shippingFilters;
+  f.shipState = stateFilterMatches(next) ? null : next;
+  renderActiveShippingFilters();
+  loadShipping();
+}
+
+function clearShippingFilter(kind) {
+  const f = state.shippingFilters;
+  if (kind === 'range') {
+    f.priceMin = null;
+    f.priceMax = null;
+    f.priceLabel = '';
+  }
+  if (kind === 'state') {
+    f.shipState = null;
+  }
+  renderActiveShippingFilters();
+  loadShipping();
+}
+
+async function loadShipping() {
+  const from  = document.getElementById('f-ship-from')?.value || document.getElementById('f-from').value;
+  const to    = document.getElementById('f-ship-to')?.value || document.getElementById('f-to').value;
+  const store = document.getElementById('f-ship-store')?.value || 'all';
+
+  document.getElementById('ship-status').textContent = 'Cargando...';
+  renderActiveShippingFilters();
+
+  // Load full analysis
+  try {
+    const params = new URLSearchParams({ date_from: from, date_to: to, store });
+    const f = state.shippingFilters || {};
+    if (f.priceMin != null) params.set('price_min', f.priceMin);
+    if (f.priceMax != null) params.set('price_max', f.priceMax);
+    if (f.shipState) params.set('ship_state', f.shipState);
+    const data = await apiFetch(`/api/shipping-analysis?${params}`);
+    state.analysis = data;
+    await loadRules();
+
+    // Populate store dropdown
+    const storeEl = document.getElementById('f-ship-store');
+    if (storeEl && data.stores?.length) {
+      const cur = storeEl.value;
+      const stores = [...data.stores];
+      if (cur && cur !== 'all' && !stores.includes(cur)) stores.unshift(cur);
+      storeEl.innerHTML = '<option value="all">Todas las tiendas</option>' +
+        stores.map(s => `<option value="${escHtml(s)}" ${s === cur ? 'selected' : ''}>${escHtml(s)}</option>`).join('');
+    }
+
+    updateShippingKPIs(data);
+    renderUSMap();
+    renderRangeTable(data.price_range_summary || []);
+    renderStateTable(data.state_summary || []);
+    renderUncoveredTable(data.uncovered_orders || [], data.uncovered_count);
+    updateInsights(data);
+    document.getElementById('ship-status').textContent = `Actualizado: ${new Date().toLocaleTimeString('es')}`;
+  } catch(e) {
+    document.getElementById('ship-status').textContent = 'Error al cargar';
+    console.error(e);
+  }
+}
+
+async function loadRules() {
+  try {
+    const data = await apiFetch('/api/shipping-rules');
+    state.rules = data.rules || [];
+  } catch(e) {
+    state.rules = [];
+  }
+  return state.rules;
+}
+
+function renderRulesPanel() {
+  const el = document.getElementById('rules-table');
+  if (!el) return;
+  if (!state.rules.length) { el.innerHTML = '<div class="empty">Sin reglas</div>'; return; }
+
+  const rows = state.rules.map(r => `
+    <div class="rule-row">
+      <div>
+        <div class="rule-range" style="font-weight:600;color:var(--text)">${r.states}</div>
+        <div class="rule-range">$${r.min_order} – $${r.max_order >= 999999 ? '∞' : r.max_order}</div>
+      </div>
+      <div>
+        <div style="font-size:13px">Actual: <strong>${usd(r.shipping_actual)}</strong></div>
+        <div style="font-size:13px;color:var(--blue)">Rec: <strong>${usd(r.shipping_rec)}</strong></div>
+      </div>
+      <div class="rule-actions">
+        <button class="btn btn-ghost btn-sm" onclick='editRule(${JSON.stringify(r)})'>✏️</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteRule(${r.id})" style="color:var(--red)">🗑</button>
+      </div>
+    </div>`).join('');
+  el.innerHTML = rows;
+}
+
+function renderRulesFull() {
+  const el = document.getElementById('rules-table-full');
+  if (!el) return;
+  if (!state.rules.length) { el.innerHTML = '<div class="empty">Sin reglas</div>'; return; }
+
+  const rows = state.rules.map(r => `
+    <div class="rule-row" style="grid-template-columns:1fr 1fr 100px 100px auto">
+      <div>
+        <div class="rule-range" style="font-weight:600;color:var(--text)">${r.states}</div>
+      </div>
+      <div class="rule-range">$${r.min_order} – $${r.max_order >= 999999 ? '∞' : r.max_order}</div>
+      <div style="font-size:13px"><strong>${usd(r.shipping_actual)}</strong><div class="rule-range">Actual</div></div>
+      <div style="font-size:13px;color:var(--blue)"><strong>${usd(r.shipping_rec)}</strong><div class="rule-range">Recomendado</div></div>
+      <div class="rule-actions">
+        <button class="btn btn-ghost btn-sm" onclick='editRule(${JSON.stringify(r)})'>✏️</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteRule(${r.id})" style="color:var(--red)">🗑</button>
+      </div>
+    </div>`).join('');
+  el.innerHTML = rows;
+}
+
+function updateInsights(data) {
+  const ranges = (data || {}).price_range_summary || [];
+  if (ranges.length) {
+    const states = (data || {}).state_summary || [];
+    const finalUncovered = Number((data || {}).uncovered_count ?? ((data || {}).uncovered_orders || []).length);
+    const afterUniversal = ranges.reduce((s, r) => s + Number(r.recommended_uncovered_count || 0), 0);
+    const statesToAttack = states.filter(s => Number(s.remaining_count || 0) > 0);
+    const i1 = document.getElementById('insight-1');
+    const i2 = document.getElementById('insight-2');
+    i1.textContent = `Paso 1 universal: ${n(afterUniversal)} orden(es) siguen por encima del rango recomendado. Paso 2 estado: ${n(statesToAttack.length)} estado(s) justifican revisar tabla específica.`;
+    i1.className = statesToAttack.length ? 'insight-box insight-warn' : 'insight-box insight-ok';
+    i1.style.display = '';
+    if (finalUncovered) {
+      i2.textContent = `Excepciones finales: ${n(finalUncovered)} orden(es) no quedan cubiertas ni con rango universal ni con recomendación por estado.`;
+      i2.className = 'insight-box insight-warn';
+      i2.style.display = '';
+    } else {
+      i2.textContent = 'Sin excepciones finales: el rango universal + el ajuste por estado cubren las órdenes analizadas.';
+      i2.className = 'insight-box insight-ok';
+      i2.style.display = '';
+    }
+    return;
+  }
+
+  const overpriced = state.rules.filter(r => r.shipping_actual > r.shipping_rec);
+  const underpriced = state.rules.filter(r => r.shipping_actual < r.shipping_rec);
+
+  const i1 = document.getElementById('insight-1');
+  const i2 = document.getElementById('insight-2');
+  if (overpriced.length) {
+    i1.textContent = `⚠️ ${overpriced.length} regla(s) tienen costo de shipping por encima del recomendado.`;
+    i1.className = 'insight-box insight-warn';
+    i1.style.display = '';
+  } else {
+    i1.style.display = 'none';
+  }
+  if (underpriced.length) {
+    i2.textContent = `✅ ${underpriced.length} regla(s) están por debajo del recomendado — podrías ajustar al alza.`;
+    i2.className = 'insight-box insight-ok';
+    i2.style.display = '';
+  } else {
+    i2.style.display = 'none';
+  }
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Shipping KPIs
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function updateShippingKPIs(data) {
+  const ra  = data.price_range_summary?.length ? data.price_range_summary : (data.rules_analysis || []);
+  const unc = data.uncovered_orders || [];
+  const uncoveredCount = Number(data.uncovered_count ?? unc.length);
+  const totalOrders = ra.reduce((s, r) => s + (r.order_count || 0), 0);
+  const totalSW     = ra.reduce((s, r) => s + ((r.total_sw_shipping ?? (r.avg_sw_cost || 0) * (r.order_count || 0)) || 0), 0);
+  const totalCharged= ra.reduce((s, r) => s + ((r.avg_charged ?? r.rec_rate ?? 0) * (r.order_count || 0)), 0);
+  const avgSW       = totalOrders ? totalSW / totalOrders : 0;
+  const avgCharged  = totalOrders ? totalCharged / totalOrders : 0;
+  const totalGap    = ra.reduce((s, r) => s + (r.total_gap || 0), 0);
+
+  document.getElementById('map-avg-rec').textContent    = usd(avgCharged);
+  document.getElementById('map-avg-actual').textContent = usd(avgSW);
+  document.getElementById('map-pct-loss').textContent   = n(uncoveredCount);
+  const gapEl = document.getElementById('map-saving');
+  gapEl.textContent  = (totalGap >= 0 ? '+' : '') + usd(totalGap);
+  gapEl.style.color  = totalGap > 0 ? 'var(--red)' : 'var(--green)';
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Range analysis table
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderRangeTable(priceSummary) {
+  const el = document.getElementById('range-table-body');
+  if (!el) return;
+  if (!priceSummary.length) {
+    el.innerHTML = '<tr><td colspan="8" class="empty">Sin datos — activa el filtro de fecha y recarga</td></tr>';
+    return;
+  }
+  el.innerHTML = priceSummary.map(s => {
+    const gCls  = s.gap_per_order > 0.5 ? 'tag-red' : s.gap_per_order < -0.5 ? 'tag-green' : 'tag-amber';
+    const tCls  = s.total_gap > 0 ? 'tag-red' : 'tag-green';
+    const gSign = s.gap_per_order >= 0 ? '+' : '';
+    const tSign = s.total_gap    >= 0 ? '+' : '';
+    const rec = rangeRecommendation(s);
+    const filterPayload = JSON.stringify({ min: s.min_price, max: s.max_price, label: s.label });
+    const selected = rangeFilterMatches(s) ? ' selected-row' : '';
+    return `<tr class="clickable-row${selected}" onclick='toggleRangeFilter(${filterPayload})'>
+      <td><strong>${s.label}</strong></td>
+      <td class="num">${n(s.order_count)}</td>
+      <td class="num" style="color:var(--blue);font-weight:600">${usd(s.rec_rate)}</td>
+      <td class="num">${usd(s.avg_sw_cost)}</td>
+      <td class="num">${recommendationCell(rec.rate, rec.delta)}</td>
+      <td class="num">${coverageCountCell(s.recommended_uncovered_count, s.recommended_uncovered_pct)}</td>
+      <td class="num"><span class="tag ${gCls}">${gSign}${usd(s.gap_per_order)}</span></td>
+      <td class="num"><span class="tag ${tCls}">${tSign}${usd(s.total_gap)}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// State table
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderStateTable(stateSummary) {
+  const el = document.getElementById('state-table-body');
+  if (!el) return;
+  if (!stateSummary.length) {
+    el.innerHTML = '<tr><td colspan="9" class="empty">Sin datos de estados</td></tr>';
+    return;
+  }
+  const sorted = [...stateSummary].sort((a, b) => (b.priority_score || 0) - (a.priority_score || 0));
+  el.innerHTML = sorted.map(s => {
+    const tCls  = Number(s.remaining_gap || 0) > 0 ? 'tag-red' : 'tag-green';
+    const tSign = Number(s.remaining_gap || 0) >= 0 ? '+' : '';
+    const rec = stateRecommendation(s);
+    const selected = stateFilterMatches(s.state) ? ' selected-row' : '';
+    return `<tr class="clickable-row${selected}" onclick="toggleStateFilter('${escHtml(s.state)}')">
+      <td><strong>${s.state}</strong> <span style="font-size:11px;color:var(--muted)">${STATE_NAMES[s.state] || ''}</span></td>
+      <td class="num">${n(s.order_count)}</td>
+      <td class="num"><span class="tag ${Number(s.remaining_count || 0) > 0 ? 'tag-red' : 'tag-green'}">${n(s.remaining_count || 0)}</span></td>
+      <td class="num">${Number(s.remaining_pct || 0).toFixed(1)}%</td>
+      <td class="num" style="color:var(--blue);font-weight:600">${usdPositive(s.avg_universal_rate || s.avg_charged)}</td>
+      <td class="num">${usd(s.avg_sw_cost)}</td>
+      <td class="num">${recommendationCell(rec.rate, rec.delta)}</td>
+      <td class="num"><span class="tag ${tCls}">${tSign}${usd(s.remaining_gap || 0)}</span></td>
+      <td class="num">${priorityCell(s.priority)}</td>
+    </tr>`;
+  }).join('');
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Uncovered orders table
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function renderUncoveredTable(uncovered, totalCount = null) {
+  const countEl = document.getElementById('uncovered-count');
+  const el      = document.getElementById('uncovered-table-body');
+  const finalCount = Number(totalCount ?? uncovered.length);
+  if (countEl) countEl.textContent = finalCount ? `${n(finalCount)} excepciones finales` : '';
+  if (!el) return;
+  if (!finalCount) {
+    el.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--green)">✅ Todas las órdenes quedan cubiertas por la tabla universal</td></tr>';
+    return;
+  }
+  el.innerHTML = uncovered.map(o => `<tr>
+    <td><span style="color:var(--blue);font-weight:600">#${o.ARTRANSID}</span></td>
+    <td><strong>${o.state || '—'}</strong></td>
+    <td style="font-size:12px;color:var(--muted)">${o.tier || '—'}</td>
+    <td><span class="tag tag-amber">${o.store || '—'}</span></td>
+    <td style="font-size:12px;color:var(--muted)">${o.TRANSDATE || '—'}</td>
+    <td class="num">${usd(o.total_sale)}</td>
+    <td class="num">${usd(o.total_shipping)}</td>
+    <td class="num">${usdPositive(o.universal_rate)}</td>
+    <td class="num">${usdPositive(o.state_rate)}</td>
+    <td class="num"><span class="tag tag-red">+${usd(o.remaining_gap || 0)}</span></td>
+  </tr>`).join('');
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// US Map (Plotly choropleth)
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+const STATE_NAMES = {
+  AL:'Alabama',AK:'Alaska',AZ:'Arizona',AR:'Arkansas',CA:'California',CO:'Colorado',CT:'Connecticut',
+  DE:'Delaware',DC:'District of Columbia',FL:'Florida',GA:'Georgia',HI:'Hawaii',ID:'Idaho',IL:'Illinois',
+  IN:'Indiana',IA:'Iowa',KS:'Kansas',KY:'Kentucky',LA:'Louisiana',ME:'Maine',MD:'Maryland',
+  MA:'Massachusetts',MI:'Michigan',MN:'Minnesota',MS:'Mississippi',MO:'Missouri',MT:'Montana',
+  NE:'Nebraska',NV:'Nevada',NH:'New Hampshire',NJ:'New Jersey',NM:'New Mexico',NY:'New York',
+  NC:'North Carolina',ND:'North Dakota',OH:'Ohio',OK:'Oklahoma',OR:'Oregon',PA:'Pennsylvania',
+  RI:'Rhode Island',SC:'South Carolina',SD:'South Dakota',TN:'Tennessee',TX:'Texas',UT:'Utah',
+  VT:'Vermont',VA:'Virginia',WA:'Washington',WV:'West Virginia',WI:'Wisconsin',WY:'Wyoming'
+};
+
+function bindUSMapClicks(el) {
+  if (!el || el._shipMapClickBound || typeof el.on !== 'function') return;
+  el.on('plotly_click', evt => {
+    const point = evt?.points?.[0];
+    if (point?.location) toggleStateFilter(point.location);
+  });
+  el._shipMapClickBound = true;
+}
+
+function renderUSMap() {
+  // Always reads from state.analysis (populated by loadShipping)
+  const stateSummary = (state.analysis || {}).state_summary || [];
+
+  // Build per-state lookup from analysis; fall back to rules for states not in summary
+  const stateDataMap = {};
+  stateSummary.forEach(s => { stateDataMap[s.state] = s; });
+  state.rules.forEach(r => {
+    (r.states || '').split(',').forEach(abbr => {
+      const a = abbr.trim().toUpperCase();
+      if (a && !stateDataMap[a]) {
+        stateDataMap[a] = {
+          state: a, zone: r.zone,
+          avg_sw_cost: r.shipping_actual, avg_charged: r.shipping_actual,
+          gap_per_order: 0, is_loss: false, order_count: 0,
+        };
+      }
+    });
+  });
+
+  const metric = (document.getElementById('map-metric') || {}).value || 'gap';
+  const metricMeta = {
+    gap: { title: 'Gap (Carrier − Cobrado) $', subtitle: 'Gap promedio por estado', tickprefix: '$' },
+    volume: { title: 'Volumen de órdenes', subtitle: 'Órdenes enviadas por estado', tickprefix: '' },
+    actual: { title: 'Costo SW Real $', subtitle: 'Costo real promedio por estado', tickprefix: '$' },
+    charged: { title: 'Cobrado al Cliente $', subtitle: 'Tarifa cobrada promedio por estado', tickprefix: '$' },
+  };
+  const activeMeta = metricMeta[metric] || metricMeta.gap;
+  const subtitleEl = document.getElementById('map-subtitle');
+  if (subtitleEl) subtitleEl.textContent = activeMeta.subtitle;
+
+  const states = Object.keys(STATE_NAMES);
+  const locations = [], zValues = [], texts = [], customs = [];
+
+  states.forEach(abbr => {
+    const info    = stateDataMap[abbr];
+    const swCost  = info ? info.avg_sw_cost   : null;
+    const charged = info ? info.avg_charged   : null;
+    const gap     = info ? info.gap_per_order : null;
+    const orders  = info ? info.order_count   : 0;
+
+    const z = metric === 'gap' ? (gap ?? 0)
+      : metric === 'volume' ? orders
+      : metric === 'actual' ? (swCost ?? 0)
+      : (charged ?? 0);
+    locations.push(abbr);
+    zValues.push(z);
+    texts.push(STATE_NAMES[abbr]);
+    customs.push([
+      swCost  != null ? swCost.toFixed(2)  : '—',
+      charged != null ? charged.toFixed(2) : '—',
+      gap     != null ? (gap >= 0 ? '+' : '') + gap.toFixed(2) : '—',
+      orders,
+    ]);
+  });
+
+  // Diverging scale for gap (green = ok/over-charging, red = losing)
+  const colorscale = metric === 'gap'
+    ? [[0,'#2f9e44'],[0.45,'#94d82d'],[0.5,'#f8f9fa'],[0.55,'#fcc419'],[1,'#e03131']]
+    : metric === 'volume'
+      ? [[0,'#eff6ff'],[0.25,'#bfdbfe'],[0.55,'#60a5fa'],[0.8,'#2563eb'],[1,'#1e40af']]
+      : [[0,'#74c69d'],[0.4,'#40916c'],[0.7,'#f4a261'],[0.9,'#e76f51'],[1,'#c1121f']];
+
+  const absMax  = metric === 'gap' ? Math.max(1, ...zValues.map(Math.abs)) : undefined;
+  const volMax  = metric === 'volume' ? Math.max(1, ...zValues) : undefined;
+  const trace = {
+    type: 'choropleth', locationmode: 'USA-states',
+    locations, z: zValues, text: texts, customdata: customs,
+    colorscale,
+    zmid: metric === 'gap' ? 0 : undefined,
+    zmin: metric === 'gap' ? -absMax : metric === 'volume' ? 0 : undefined,
+    zmax: metric === 'gap' ?  absMax : metric === 'volume' ? volMax : undefined,
+    colorbar: {
+      title: { text: activeMeta.title, font: { size: 11 } },
+      thickness: 14, len: 0.75, tickprefix: activeMeta.tickprefix, tickfont: { size: 11 },
+    },
+    marker: { line: { color: '#ffffff', width: 1.5 } },
+    hovertemplate:
+      '<b>%{text} (%{location})</b><br>' +
+      'Órdenes: %{customdata[3]}<br>' +
+      'Costo SW real: $%{customdata[0]}<br>' +
+      'Cobrado al cliente: $%{customdata[1]}<br>' +
+      'Gap: %{customdata[2]}<br>' +
+      '<extra></extra>',
+  };
+
+  const layout = {
+    margin: { l: 0, r: 0, t: 10, b: 10 },
+    geo: { scope: 'usa', projection: { type: 'albers usa' }, showlakes: true, lakecolor: '#dbeafe', bgcolor: 'rgba(0,0,0,0)' },
+    paper_bgcolor: 'rgba(0,0,0,0)', plot_bgcolor: 'rgba(0,0,0,0)',
+  };
+
+  const el = document.getElementById('usMap');
+  let rendered;
+  if (el._plotlyRendered) {
+    rendered = Plotly.react('usMap', [trace], layout, { responsive: true, displayModeBar: false });
+  } else {
+    rendered = Plotly.newPlot('usMap', [trace], layout, { responsive: true, displayModeBar: false });
+    el._plotlyRendered = true;
+  }
+  Promise.resolve(rendered).then(() => bindUSMapClicks(el));
+}
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Rule CRUD
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+function openAddRule() {
+  state.editRuleId = null;
+  document.getElementById('modal-title').textContent = 'Nueva Regla';
+  document.getElementById('m-zone').value   = '';
+  document.getElementById('m-states').value = '';
+  document.getElementById('m-min').value    = '0';
+  document.getElementById('m-max').value    = '49.99';
+  document.getElementById('m-actual').value = '4.99';
+  document.getElementById('m-rec').value    = '4.99';
+  document.getElementById('modal-bg').style.display = 'flex';
+}
+
+function editRule(rule) {
+  state.editRuleId = rule.id;
+  document.getElementById('modal-title').textContent = 'Editar Regla';
+  document.getElementById('m-zone').value   = rule.zone;
+  document.getElementById('m-states').value = rule.states;
+  document.getElementById('m-min').value    = rule.min_order;
+  document.getElementById('m-max').value    = rule.max_order;
+  document.getElementById('m-actual').value = rule.shipping_actual;
+  document.getElementById('m-rec').value    = rule.shipping_rec;
+  document.getElementById('modal-bg').style.display = 'flex';
+}
+
+function closeModal() {
+  document.getElementById('modal-bg').style.display = 'none';
+}
+
+async function saveRule() {
+  const payload = {
+    zone:            document.getElementById('m-zone').value.trim(),
+    states:          document.getElementById('m-states').value.trim(),
+    min_order:       parseFloat(document.getElementById('m-min').value) || 0,
+    max_order:       parseFloat(document.getElementById('m-max').value) || 999999,
+    shipping_actual: parseFloat(document.getElementById('m-actual').value) || 0,
+    shipping_rec:    parseFloat(document.getElementById('m-rec').value) || 0,
+  };
+  const id  = state.editRuleId;
+  const url = id ? `/api/shipping-rules/${id}` : '/api/shipping-rules';
+  const method = id ? 'PUT' : 'POST';
+  await fetch(apiUrl(url), { method, headers: apiHeaders(), body: JSON.stringify(payload) });
+  closeModal();
+  await loadRules();
+  renderRulesPanel();
+  renderRulesFull();
+  renderUSMap();
+  updateInsights();
+}
+
+async function deleteRule(id) {
+  if (!confirm('¿Eliminar esta regla?')) return;
+  await fetch(apiUrl(`/api/shipping-rules/${id}`), { method: 'DELETE', headers: apiHeaders() });
+  await loadRules();
+  renderRulesPanel();
+  renderRulesFull();
+  renderUSMap();
+  updateInsights();
+}
+
+// Close modal on bg click
+document.getElementById('modal-bg').addEventListener('click', function(e) {
+  if (e.target === this) closeModal();
+});
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+init();
+</script>
+</body>
+</html>
